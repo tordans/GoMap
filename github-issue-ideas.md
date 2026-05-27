@@ -77,3 +77,13 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 **Problem:** Other OSM keys that carry human-readable names do not get that behavior today. **`alt_name`**, **`old_name`**, and especially **localized names** (`name:en`, `name:de`, …—any `name:` + language suffix) behave like plain text fields, so mappers must **capitalize each word manually** even though the semantics match `name`.
 
 **Change:** Apply the **same input handling** as for **`name`** to every tag the app treats as a “display name” variant—at minimum **`alt_name`**, **`old_name`**, and **`name:*`** (regex or allow-list keyed off the `name:` prefix). Optional: extend the same list to other preset-defined name fields if they share the same UI control.
+
+---
+
+## Attributes tab: checkmark dismisses when there are no edits
+
+**Context:** On the **Attributes** tab, the navigation bar has a **checkmark** (“done”) control and a way to leave without saving (e.g. **close** / **×**).
+
+**Today:** If **nothing** in the editor changed, the checkmark is effectively a **no-op**—it does not dismiss the POI sheet.
+
+**Change:** When the tag dict is **unchanged**, tapping the **checkmark** should still **dismiss the POI editor** (same as after a successful save), but **must not** write tags—behaviorally equivalent to **dismiss without saving**, like **×**. When there **are** edits, keep current behavior: checkmark **saves** and closes.
