@@ -134,3 +134,61 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 **Why:** Mappers who already use area rotation muscle memory get a map-native way to aim benches, surveillance cameras, viewpoints, etc., without opening the POI sheet or holding the phone for compass capture—complementary to, not a replacement for, **`DirectionViewController`**.
 
 **Scope (initial):** `direction` and `camera:direction` on **standalone nodes**; optional follow-up: extend to nodes that only infer direction from way geometry if that stays unambiguous.
+
+---
+
+## Traffic signs: build script, POI picker (`traffic_sign*`), map overlay
+
+**Context:** Go Map!! already runs **prep scripts** before release—e.g. `src/presets/update.sh` (iD tagging schema) and `src/POI-Icons/update.sh` (preset icons). The app also resolves **map country** for presets (`currentRegion.country`, `CountryCoder` / `borders.json`). POI fields that support structured values already expose a **+** affordance that opens a picker (combo / semicolon-separated values).
+
+**Package:** [@osm-traffic-signs/converter](https://www.npmjs.com/package/@osm-traffic-signs/converter) — catalog, search index, **compose** rules (country prefix e.g. `DE:`, semicolon-separated list, comma sub-parts), and **decompose** templates to split an existing `traffic_sign` value back into components.
+
+**Catalog scope (initial):** Germany only; the npm package is country-scoped. More countries can follow as catalogs land in the package.
+
+### 1. Build script (iOS asset pipeline)
+
+Add a prep step alongside presets/icons (wire into `src/update_all.sh` when ready):
+
+- Run Node, consume `@osm-traffic-signs/converter`, emit a **bundled index** for iOS (sign metadata, icons, search tokens, country codes, “frequently used” list).
+- **Vendor the composition/decomposition rules** from the package so the app can **serialize** and **parse** tag values offline with the same semantics as the web tooling (correct `DE:` prefix, `;` between signs, `,` within compound signs).
+
+### 2. POI editor: `+` on `traffic_sign`, `traffic_sign:forward`, `traffic_sign:backward`
+
+**Show `+` only when** the current map country has a catalog entry (today: **DE**). Reuse existing country detection; hide the control elsewhere.
+
+**Tap `+` → panel:**
+
+| Region | Content |
+|--------|---------|
+| Top | **Search field** — query the bundled index |
+| Below search | **Selected signs** — horizontal row of chosen items (chips / thumbnails) |
+| Below selection | **Results** — **iOS grid** of matching signs; tap to add/remove from selection |
+
+**Empty search:** list **frequently used** signs for the active country (from the index), not an empty grid.
+
+**Apply:** write back a single tag value using the vendored **compose** rules.
+
+**Editing an existing value:** on `+`, **decompose** the current string per package rules, run search/display **per component**, pre-fill the selected row. Components that are **not** in the catalog (free-text fragments in the value) must **not** be dropped—surface them as **“other”** entries in the selection row so mappers see and keep them.
+
+Same UI for **`traffic_sign`**, **`traffic_sign:forward`**, and **`traffic_sign:backward`** (three independent fields where the preset/schema exposes them).
+
+### 3. Display setting: show traffic signs on the map
+
+Add a toggle in **display settings** next to the existing **highlight unknown roads** (or equivalent map-overlay section): **Show traffic signs**.
+
+When **on**, the map renderer draws a compact **bead chain** of sign icons (stacked/overlapping miniatures, “pearls on a string”):
+
+- **Nodes** with `traffic_sign=*` (or directional variants): chain at the **point**.
+- **Ways** with sign tags: chain **along the way**, oriented with **line direction**.
+
+**Directional tags:**
+
+| Tags present | Map behavior |
+|--------------|--------------|
+| `traffic_sign:forward` / `:backward` | Show each chain in **that** travel direction along the way |
+| Only one directional tag | Use it for its direction; fall back to undirected `traffic_sign` for the other if needed |
+| Both directional + `traffic_sign` | **Directional values win** over the generic tag where they overlap |
+
+Respect the same **country catalog** gate as the editor (no overlay where no icons/index exist).
+
+**Why:** `traffic_sign` values are long, country-prefixed, and easy to mistype; the npm package already encodes valid composition. A picker plus optional map preview makes surveying and fixing sign tags practical without memorizing StVO codes.
