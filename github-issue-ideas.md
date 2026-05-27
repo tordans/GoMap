@@ -115,3 +115,22 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 **Scope (initial):** Match OSM semantics for **`bicycle:oneway=no`** on ways that already resolve to **`isOneWay != .NONE`**; respect **`oneway=-1`** (black arrow backward, blue forward). Optional follow-up: other mode-specific exceptions (`foot:oneway`, `bus:oneway`, …) if mappers need them.
 
 **Why:** This tagging pattern is common on urban cycle infrastructure (one-way street with contraflow cycling). A second, offset, color-coded arrow communicates “cars this way, bikes both ways” without opening the POI editor.
+
+---
+
+## Directional nodes: map **Rotate** updates `direction` / `camera:direction`
+
+**Context:** **`OsmNode.direction`** (see `OsmNode+Direction.swift`) reads numeric degrees, cardinals, or ranges from **`direction=*`** or **`camera:direction=*`**. The map draws a direction wedge via **`directionShapeLayers(with:)`**. In the POI editor, **`PresetValueTextField`** offers a compass affordance that opens **`DirectionViewController`** (“point your phone…”) to set those tag values.
+
+**Today:** The **Rotate** edit action (`.ROTATE` in **`EditorMapLayer+Edit`**) only starts for **ways** and **multipolygon relations**; nodes get *“Only ways/multipolygons can be rotated.”* Rotation always moves geometry. Direction is edited only through the POI field / compass flow.
+
+**Change:** When a selected **node** carries a **technical direction** tag (`direction` or `camera:direction` with a value **`OsmNode.direction`** can parse—not highway **`forward`/`backward`** semantics on a way), expose **Rotate** in the edit menu the same way as for areas, but enter a **direction-edit rotate mode** instead of moving the point:
+
+- Gesture matches existing object rotation (pinch / rotate overlay around the node).
+- Each rotation step **writes** the tag (create or update **`direction`** / **`camera:direction`**) with the new bearing in degrees (same convention as today’s map preview and compass UI).
+- Live preview: keep the on-map direction wedge aligned with the gesture while rotating.
+- If the tag is removed or unparsable, fall back to today’s behavior (no rotate on node, or prompt to add direction first—pick one and document it).
+
+**Why:** Mappers who already use area rotation muscle memory get a map-native way to aim benches, surveillance cameras, viewpoints, etc., without opening the POI sheet or holding the phone for compass capture—complementary to, not a replacement for, **`DirectionViewController`**.
+
+**Scope (initial):** `direction` and `camera:direction` on **standalone nodes**; optional follow-up: extend to nodes that only infer direction from way geometry if that stays unambiguous.
