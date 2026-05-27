@@ -101,3 +101,17 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 **Change:** When a **`fixme=*`** marker is placed on an object that is a **member of at least one relation**, tint the marker with the **same light blue** as relation member highlighting—not the default fixme blue. Fixmes on non-relation objects keep today’s styling.
 
 **Why:** Gives an at-a-glance visual filter: relation-bound fixmes read as a distinct category, so mappers can mentally (or eventually via marker filters) de-emphasize them while focusing on fixmes they can actually address in the editor.
+
+---
+
+## One-way arrows: blue reverse arrow when `bicycle:oneway=no`
+
+**Context:** **`OsmWay.computeIsOneWay()`** treats `oneway=yes` / `-1` and several implicit one-way highway types as **`ONEWAY.FORWARD`** / **`.BACKWARD`**. **`EditorMapLayer`** draws **black** chevron arrows along those ways (`fillColor` black, white stroke) at a fixed offset along the geometry.
+
+**Today:** Only the **general** one-way direction is shown. There is no map hint when cyclists are explicitly allowed the **opposite** direction via **`bicycle:oneway=no`** on a way that is still one-way for other traffic (e.g. `oneway=yes` + `bicycle:oneway=no`).
+
+**Change:** When a way is one-way **and** tagged **`bicycle:oneway=no`**, keep the existing **black** arrow for the motor/general direction, and add a second arrow in the **opposite** direction, drawn in **blue** (distinct from the default black). Place the blue arrow **along the same way** but with a **lateral or longitudinal offset** so it does not sit on top of the black chevron—enough separation to read both directions at a glance.
+
+**Scope (initial):** Match OSM semantics for **`bicycle:oneway=no`** on ways that already resolve to **`isOneWay != .NONE`**; respect **`oneway=-1`** (black arrow backward, blue forward). Optional follow-up: other mode-specific exceptions (`foot:oneway`, `bus:oneway`, …) if mappers need them.
+
+**Why:** This tagging pattern is common on urban cycle infrastructure (one-way street with contraflow cycling). A second, offset, color-coded arrow communicates “cars this way, bikes both ways” without opening the POI editor.
