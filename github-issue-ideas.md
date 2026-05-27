@@ -67,3 +67,13 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 3. For a **new way** / **area** that already exists in memory, **`selection` is usually non-nil** → **Attributes** remains visible and index **2** can still be restored, even though that tab has no real OSM metadata yet.
 
 **Change:** Treat **new geometry** the same whether `selectedPrimary` is nil or a **pending** **way** / **closed way (area)** / **relation** (e.g. **`ident < 0`** or whatever flag the app uses for “not uploaded”): **strip the Attributes tab** and apply the **same index clamping** as the `selection == nil` branch (never restore **2** onto a two-tab bar; never show **Attributes** until the object has server-backed metadata worth showing). **Ways** and **areas** should match the **new node** behavior the user described.
+
+---
+
+## Name-like tags: same text treatment as `name` on Common Tags
+
+**Context:** In the POI editor (**All Tags** and **Common Tags**), the primary **`name`** field is treated specially while typing (for example **word-capitalization** / title-style behavior and related keyboard or autocorrect affordances).
+
+**Problem:** Other OSM keys that carry human-readable names do not get that behavior today. **`alt_name`**, **`old_name`**, and especially **localized names** (`name:en`, `name:de`, …—any `name:` + language suffix) behave like plain text fields, so mappers must **capitalize each word manually** even though the semantics match `name`.
+
+**Change:** Apply the **same input handling** as for **`name`** to every tag the app treats as a “display name” variant—at minimum **`alt_name`**, **`old_name`**, and **`name:*`** (regex or allow-list keyed off the `name:` prefix). Optional: extend the same list to other preset-defined name fields if they share the same UI control.
