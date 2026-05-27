@@ -192,3 +192,27 @@ When **on**, the map renderer draws a compact **bead chain** of sign icons (stac
 Respect the same **country catalog** gate as the editor (no overlay where no icons/index exist).
 
 **Why:** `traffic_sign` values are long, country-prefixed, and easy to mistype; the npm package already encodes valid composition. A picker plus optional map preview makes surveying and fixing sign tags practical without memorizing StVO codes.
+
+---
+
+## Settings: disable NSI (Name Suggestion Index) suggestions
+
+**Context:** Go Map ships **Name Suggestion Index** data (`nsi_presets.json`, `nsi_geojson.json` via `src/presets/update.sh`) alongside the main iD preset catalog. NSI adds **brand / chain** presets (e.g. specific shop names) on top of generic types (`shop=supermarket`).
+
+**Today:**
+
+- **Preset search** merges NSI into results when callers pass **`includeNSI: true`**—notably the **preset chooser** (`POIFeaturePickerViewController`), **Common Tags** / **All Tags** preset matching (`POICommonTagsViewController`, `POIAllTagsViewController`), and object preset resolution (`OsmBaseObject`).
+- NSI hits are labeled with **brand + friendly name** and sorted as suggestions (`nsiSuggestion` in `PresetsDatabase+Display`).
+- **Brand logos** for NSI rows load through **`NsiLogoDatabase`** / **`PresetFeature.nsiLogo`**, which fetches images from the **gomaposm.com** brand-icon server (with disk cache)—so scrolling search or opening choosers can trigger **ongoing network downloads** even though core preset icons are bundled.
+
+**Problem:** Mappers who mostly map **generic** POIs (not chain brands) get **noisier search** (many near-duplicate “McDonald’s”, “REWE”, … entries) and **extra data use** from logo fetches they do not need.
+
+**Change:** Add a **Settings** toggle (e.g. “Name Suggestion Index” / “Brand suggestions”, default **on** for parity with today) that, when **off**:
+
+1. Pass **`includeNSI: false`** everywhere NSI is only used for **discovery** (preset picker search, preset row suggestions in the POI editor)—same pattern as **`CustomFeatureController`** and quests, which already omit NSI.
+2. **Do not call** **`nsiLogo`** / **`NsiLogoDatabase`** for UI that would have shown a downloaded brand image; use the normal bundled preset icon (or none).
+3. Keep **reading existing tags** on already-mapped objects (do not strip `brand=*` or break matching of objects that were tagged via NSI).
+
+**Why:** One switch for **less clutter** in search and **fewer background icon downloads**, without removing NSI from the build for users who want brand workflows.
+
+---
