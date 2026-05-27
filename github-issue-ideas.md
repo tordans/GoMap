@@ -87,3 +87,17 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 **Today:** If **nothing** in the editor changed, the checkmark is effectively a **no-op**—it does not dismiss the POI sheet.
 
 **Change:** When the tag dict is **unchanged**, tapping the **checkmark** should still **dismiss the POI editor** (same as after a successful save), but **must not** write tags—behaviorally equivalent to **dismiss without saving**, like **×**. When there **are** edits, keep current behavior: checkmark **saves** and closes.
+
+---
+
+## Map fixme markers: light blue when the object is a relation member
+
+**Context:** Selecting a **relation** on the map highlights its member **ways** (and other members) in a distinctive **light blue** (`EditorMapLayer` uses `relationColor`, RGB 66/188/244). Separately, objects tagged with **`fixme=*`** get a small **“F”** map marker (`FixmeMarker` via `MapMarkerDatabase`).
+
+**Today:** Relation member highlighting and fixme markers are unrelated visually. Every fixme badge uses the same generic **blue** button styling from `MapMarker.makeButton()`, whether the tagged object stands alone or belongs to one or more **relations**.
+
+**Problem:** Fixmes on **relation members** are often not something mappers can resolve inside Go Map (they may require external tools, relation-level edits, or context the app does not expose). When scanning the map, those markers look the same as fixmes on ordinary nodes and ways, so they add noise without signaling “this is relation-scoped / probably not actionable here.”
+
+**Change:** When a **`fixme=*`** marker is placed on an object that is a **member of at least one relation**, tint the marker with the **same light blue** as relation member highlighting—not the default fixme blue. Fixmes on non-relation objects keep today’s styling.
+
+**Why:** Gives an at-a-glance visual filter: relation-bound fixmes read as a distinct category, so mappers can mentally (or eventually via marker filters) de-emphasize them while focusing on fixmes they can actually address in the editor.
