@@ -47,3 +47,23 @@ Change the UI Element that shows teh current preset and opens the preset chooser
 
 1. **Line 1 (always):** Matched **preset name** (the feature type from the preset system), same anchor position as now.
 2. **Line 2 (optional):** If the object has a display **name** (e.g. `name=*`), show it here in a **slightly smaller** font so hierarchy reads: *what it is* → *what it’s called*.
+
+---
+
+## Remember last POI tab: skip Attributes for new objects; align node vs way
+
+**Context:** `POITabBarController` restores **`UserPrefs.poiTabIndex`** when the POI editor opens. Tabs are **0 = Common Tags**, **1 = All Tags**, **2 = Attributes**.
+
+**What the code does today (`POITabBarController.viewDidLoad`):**
+
+- **`selection`** is `mapView.selectedPrimary` (the selected **node**, **way**, or **relation**).
+- **`selection == nil`** (common when adding a **new standalone node** from the pushpin before a primary object is attached): the **Attributes** nav controller is **removed** from `viewControllers` (only two tabs). If the saved index was **2**, it is **forced to 0** before `selectedIndex` is applied—so you never land on a missing third tab, and you open on **Common Tags** after having left an existing object on **Attributes**.
+- **`selection != nil`**: all **three** tabs stay, and the saved index is applied **as-is**—including **2** on objects that are still **local-only** (negative `ident`, not on the API yet).
+
+**Observed UX (matches the above):**
+
+1. Edit an **existing node** → **Attributes** → switch to **Common Tags** or **All Tags** → later open the editor for a **new node** with `selection == nil` → you return to **Common Tags** or **All Tags**, and **Attributes** is not in the tab bar.
+2. Same as (1), but leave the last session on **Attributes** (index 2) → next **new node** (`selection == nil`) session opens on **Common Tags** (index 2 is clamped to 0), **Attributes** still hidden.
+3. For a **new way** / **area** that already exists in memory, **`selection` is usually non-nil** → **Attributes** remains visible and index **2** can still be restored, even though that tab has no real OSM metadata yet.
+
+**Change:** Treat **new geometry** the same whether `selectedPrimary` is nil or a **pending** **way** / **closed way (area)** / **relation** (e.g. **`ident < 0`** or whatever flag the app uses for “not uploaded”): **strip the Attributes tab** and apply the **same index clamping** as the `selection == nil` branch (never restore **2** onto a two-tab bar; never show **Attributes** until the object has server-backed metadata worth showing). **Ways** and **areas** should match the **new node** behavior the user described.
