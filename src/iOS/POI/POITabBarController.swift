@@ -12,6 +12,28 @@ class POITabBarController: UITabBarController {
 	var relationList: [OsmRelation] = []
 	var selection: OsmBaseObject?
 
+	/// Whether the Attributes tab (index 2) should appear for the current selection.
+	/// Pending local-only objects use negative `ident` until upload, same as brand-new nodes.
+	static func shouldShowAttributesTab(for selection: OsmBaseObject?) -> Bool {
+		guard let selection else { return false }
+		return selection.ident >= 0
+	}
+
+	/// Resolves tab count and selected index from saved prefs and selection (storyboard order: Common, All, Attributes).
+	static func resolvedTabBar(
+		savedIndex: Int,
+		selection: OsmBaseObject?,
+		defaultThreeTabs: Bool = true
+	) -> (tabCount: Int, selectedIndex: Int) {
+		let showAttributes = shouldShowAttributesTab(for: selection)
+		let tabCount = (defaultThreeTabs && showAttributes) ? 3 : 2
+		var selectedIndex = savedIndex
+		if savedIndex == 2, !showAttributes {
+			selectedIndex = 0
+		}
+		return (tabCount, selectedIndex)
+	}
+
 	override func viewDidLoad() {
 		super.viewDidLoad()
 
@@ -21,21 +43,15 @@ class POITabBarController: UITabBarController {
 		keyValueDict = selection?.tags ?? [:]
 		relationList = selection?.parentRelations ?? []
 
-		var tabIndex = UserPrefs.shared.poiTabIndex.value ?? 0
-		if tabIndex == 2,
-		   selection == nil
-		{
-			tabIndex = 0
-		}
-		if selection == nil {
-			// don't show attributes page
+		let savedIndex = UserPrefs.shared.poiTabIndex.value ?? 0
+		let resolved = Self.resolvedTabBar(savedIndex: savedIndex, selection: selection)
+		if !Self.shouldShowAttributesTab(for: selection) {
 			var vcList = viewControllers!
 			vcList.removeLast()
 			self.viewControllers = vcList
 		}
-		selectedIndex = tabIndex
+		selectedIndex = resolved.selectedIndex
 
-		// hide attributes tab on new objects
 		updatePOIAttributesTabBarItemVisibility(withSelectedObject: selection)
 
 		if #available(iOS 17, *) {
@@ -73,25 +89,22 @@ class POITabBarController: UITabBarController {
 		selectedViewController?.dismiss(animated: true)
 	}
 
-	/// Hides the POI attributes tab bar item when the user is adding a new item, since it doesn't have any attributes yet.
+	/// Hides the POI attributes tab when the selection has no server attributes yet (nil or pending negative id).
 	/// - Parameter selectedObject: The object that the user selected on the map.
 	func updatePOIAttributesTabBarItemVisibility(withSelectedObject selectedObject: OsmBaseObject?) {
-		let isAddingNewItem = selectedObject == nil
-		if isAddingNewItem {
-			// Remove the `POIAttributesViewController`.
-			var viewControllersToKeep: [UIViewController] = []
-			for controller in viewControllers ?? [] {
-				if controller is UINavigationController,
-				   (controller as? UINavigationController)?.viewControllers.first is POIAttributesViewController
-				{
-					// For new objects, the navigation controller that contains the view controller
-					// for POI attributes is not needed; ignore it.
-					return
-				} else {
-					viewControllersToKeep.append(controller)
-				}
-			}
+		guard !Self.shouldShowAttributesTab(for: selectedObject) else { return }
 
+		var viewControllersToKeep: [UIViewController] = []
+		for controller in viewControllers ?? [] {
+			if controller is UINavigationController,
+			   (controller as? UINavigationController)?.viewControllers.first is POIAttributesViewController
+			{
+				continue
+			}
+			viewControllersToKeep.append(controller)
+		}
+
+		if viewControllersToKeep.count != viewControllers?.count {
 			setViewControllers(viewControllersToKeep, animated: false)
 		}
 	}
