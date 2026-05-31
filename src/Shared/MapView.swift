@@ -44,6 +44,8 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 	var voiceAnnouncement: VoiceAnnouncement?
 	var objectRotationGesture: UIRotationGestureRecognizer!
+	private var objectRotationPanGesture: UIPanGestureRecognizer!
+	private var objectRotationLastAngle: CGFloat?
 	@IBOutlet var editToolbar: CustomSegmentedControl!
 
 	private var magnifyingGlass: MagnifyingGlass!
@@ -94,6 +96,15 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		objectRotationGesture.delegate = self
 		objectRotationGesture.isEnabled = false // disabled until needed
 		addGestureRecognizer(objectRotationGesture)
+
+		// single-finger rotation anywhere on the map while in rotate mode
+		objectRotationPanGesture = UIPanGestureRecognizer(
+			target: self,
+			action: #selector(handleObjectRotationPan(_:)))
+		objectRotationPanGesture.delegate = self
+		objectRotationPanGesture.maximumNumberOfTouches = 1
+		objectRotationPanGesture.isEnabled = false
+		addGestureRecognizer(objectRotationPanGesture)
 
 		if #available(iOS 13.4, macCatalyst 13.0, *) {
 			// mouseover support for Mac Catalyst and iPad:
@@ -299,6 +310,8 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 		isRotateObjectMode = (rotateObjectOverlay, rotateObjectCenter)
 		objectRotationGesture.isEnabled = true
+		objectRotationPanGesture.isEnabled = true
+		mainView.setObjectRotationModeActive(true)
 	}
 
 	func endObjectRotation() {
@@ -307,6 +320,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		editorLayer.dragState.confirmDrag = false
 		isRotateObjectMode = nil
 		objectRotationGesture.isEnabled = false
+		objectRotationPanGesture.isEnabled = false
+		objectRotationLastAngle = nil
+		mainView.setObjectRotationModeActive(false)
 	}
 
 	// MARK: Discard stale data
@@ -978,6 +994,10 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	// The gesture for this is in MainViewController with other gesture handlers,
 	// but the implementation is here because it is tightly coupled to the editor layer.
 	func handleTapAndDragGesture(_ tapAndDrag: TapAndDragGesture) {
+		guard isRotateObjectMode == nil else {
+			return
+		}
+
 		// do single-finger zooming
 		switch tapAndDrag.state {
 		case .began:
@@ -1041,7 +1061,42 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		}
 	}
 
-	// user rotating an OSM object
+	// user rotating an OSM object with one finger anywhere on the map
+	@objc func handleObjectRotationPan(_ pan: UIPanGestureRecognizer) {
+		guard let rotate = isRotateObjectMode else {
+			return
+		}
+		let center = viewPort.mapTransform.screenPoint(forLatLon: rotate.rotateObjectCenter, birdsEye: true)
+		let touch = pan.location(in: self)
+		let angle = atan2(touch.y - center.y, touch.x - center.x)
+
+		switch pan.state {
+		case .began:
+			editorLayer.rotateBegin()
+			objectRotationLastAngle = angle
+		case .changed:
+			guard let lastAngle = objectRotationLastAngle else {
+				return
+			}
+			var delta = angle - lastAngle
+			while delta > .pi {
+				delta -= 2 * .pi
+			}
+			while delta < -.pi {
+				delta += 2 * .pi
+			}
+			objectRotationLastAngle = angle
+			editorLayer.rotateContinue(delta: delta, rotate: rotate)
+		case .ended, .cancelled, .failed:
+			objectRotationLastAngle = nil
+			endObjectRotation()
+			editorLayer.rotateFinish()
+		default:
+			break
+		}
+	}
+
+	// user rotating an OSM object with two fingers
 	@IBAction func handleRotationGesture(_ rotationGesture: UIRotationGestureRecognizer) {
 		guard let rotate = isRotateObjectMode else {
 			return
@@ -1051,6 +1106,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			editorLayer.rotateBegin()
 		} else if rotationGesture.state == .changed {
 			editorLayer.rotateContinue(delta: rotationGesture.rotation, rotate: rotate)
+			rotationGesture.rotation = 0
 		} else {
 			// ended
 			endObjectRotation()

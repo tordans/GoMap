@@ -160,6 +160,10 @@ final class MainViewController: UIViewController, DPadDelegate,
 
 	var isInitialized = false
 
+	/// Map rotation (disabled while rotating a selected object).
+	private var screenRotationGesture: RotationGestureRecognizer!
+	private var mapPanGesture: UIPanGestureRecognizer!
+
 	let viewPort = MapViewPortObject()
 
 	// This contains the user's general vicinity. Although it contains a lat/lon it only
@@ -303,6 +307,7 @@ final class MainViewController: UIViewController, DPadDelegate,
 		}
 		pan.delegate = self
 		view.addGestureRecognizer(pan)
+		mapPanGesture = pan
 
 		let pinch = PinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
 		pinch.delegate = self
@@ -311,6 +316,7 @@ final class MainViewController: UIViewController, DPadDelegate,
 		// two-finger rotation
 		let rotate = RotationGestureRecognizer(target: self, action: #selector(handleRotationGesture(_:)))
 		view.addGestureRecognizer(rotate)
+		screenRotationGesture = rotate
 
 		// Support zoom via tap and drag
 		let tapAndDragGesture = TapAndDragGesture(target: self, action: #selector(handleTapAndDragGesture(_:)))
@@ -855,7 +861,17 @@ final class MainViewController: UIViewController, DPadDelegate,
 		DisplayLink.shared.remove(.screenPanningInertia)
 	}
 
+	func setObjectRotationModeActive(_ active: Bool) {
+		// Pan and screen rotation compete with object rotation; disable them in rotate mode.
+		mapPanGesture.isEnabled = !active
+		screenRotationGesture.isEnabled = !active
+	}
+
 	@objc func handlePanGesture(_ pan: UIPanGestureRecognizer) {
+		guard mapView.isRotateObjectMode == nil else {
+			return
+		}
+
 		userOverrodeLocationPosition = true
 
 		if pan.state == .began {
@@ -994,6 +1010,9 @@ final class MainViewController: UIViewController, DPadDelegate,
 	}
 
 	@objc func handleTapAndDragGesture(_ tapAndDrag: TapAndDragGesture) {
+		guard mapView.isRotateObjectMode == nil else {
+			return
+		}
 		mapView.handleTapAndDragGesture(tapAndDrag)
 	}
 
