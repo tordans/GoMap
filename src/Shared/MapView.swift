@@ -1023,8 +1023,14 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 			let point = tap.location(in: self)
 			if mainView.plusButtonTimestamp != 0.0 {
-				// user is doing a long-press on + button
-				editorLayer.addNode(at: point)
+				// user is holding + button while tapping the map
+				if editorLayer.isGeometryDrawActive {
+					editorLayer.geometryDrawTap(at: viewPort.screenCenterPoint())
+				} else {
+					editorLayer.addNode(at: point)
+				}
+			} else if editorLayer.isGeometryDrawActive {
+				editorLayer.geometryDrawTap(at: viewPort.screenCenterPoint())
 			} else {
 				editorLayer.selectObjectAtPoint(point)
 			}
@@ -1075,7 +1081,15 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 	func rightClick(at location: CGPoint) {
 		// right-click is equivalent to holding + and clicking
-		editorLayer.addNode(at: location)
+		if editorLayer.isGeometryDrawActive {
+			editorLayer.geometryDrawTap(at: viewPort.screenCenterPoint())
+		} else {
+			editorLayer.addNode(at: location)
+		}
+	}
+
+	func beginGeometryDraw(_ tool: GeometryDrawTool) {
+		editorLayer.beginGeometryDraw(tool)
 	}
 
 	// This is used to highlight objects when hovering with a mouse

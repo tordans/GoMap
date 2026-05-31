@@ -138,6 +138,9 @@ extension EditorMapLayer {
 	// MARK: Selection
 
 	func selectObjectAtPoint(_ point: CGPoint) {
+		if isGeometryDrawActive {
+			cancelGeometryDraw()
+		}
 		owner.unblinkObject() // used by Mac Catalyst, harmless otherwise
 
 		if selectedWay != nil,

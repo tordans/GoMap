@@ -178,6 +178,13 @@ final class EditorMapLayer: CALayer {
 
 	var dragState = DragState(startPoint: .zero, didMove: false, confirmDrag: false)
 
+	/// Active geometry helper from long-press + flyout (line / rectangle / circle).
+	var geometryDrawTool: GeometryDrawTool?
+	/// Fixed corners in geographic coordinates for rectangle/circle tools.
+	var geometryDrawFixedCorners: [LatLon] = []
+	var geometryDrawPreviewLayer: CAShapeLayer?
+	let geometryDrawPreviewToken = NSObject()
+
 	let objectFilters = EditorFilters()
 
 	var whiteText = false {
