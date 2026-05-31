@@ -31,6 +31,12 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	var note: OsmNoteMarker!
 	var mapView: MapView!
 
+	private enum UpdateSectionRow: Int, CaseIterable {
+		case comment = 0
+		case shareLink
+		case directions
+	}
+
 	override func viewDidLoad() {
 		super.viewDidLoad()
 
@@ -49,12 +55,43 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 		tableView.contentInset = rc
 	}
 
+	func stylePrimaryActionButton(_ button: UIButton) {
+		let title = button.title(for: .normal)
+		if #available(iOS 26.0, *) {
+			var config = UIButton.Configuration.prominentGlass()
+			config.cornerStyle = .capsule
+			config.title = title
+			button.configuration = config
+		} else if #available(iOS 15.0, *) {
+			var config = UIButton.Configuration.filled()
+			config.cornerStyle = .medium
+			config.title = title
+			button.configuration = config
+		} else {
+			button.layer.cornerRadius = 10
+			button.clipsToBounds = true
+			button.backgroundColor = button.isEnabled ? .systemBlue : .systemGray3
+			button.setTitleColor(.white, for: .normal)
+		}
+	}
+
+	func configureNewCommentCell(_ cell: NotesNewCommentCell) {
+		stylePrimaryActionButton(cell.commentButton)
+		stylePrimaryActionButton(cell.resolveButton)
+		cell.commentButton.constraints.first(where: { $0.firstAttribute == .height })?.constant = 44
+		cell.resolveButton.constraints.first(where: { $0.firstAttribute == .height })?.constant = 44
+	}
+
 	override func viewWillAppear(_ animated: Bool) {
 		super.viewWillAppear(animated)
 	}
 
+	var canShareNoteLink: Bool {
+		note.noteId > 0
+	}
+
 	func updateShareButton() {
-		navigationItem.rightBarButtonItem?.isEnabled = note.comments.count > 0
+		navigationItem.rightBarButtonItem?.isEnabled = canShareNoteLink
 	}
 
 	// MARK: - Table view data source
@@ -79,7 +116,10 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	}
 
 	func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-		return section == 0 && note.comments.count > 0 ? note.comments.count : 2
+		if section == 0, note.comments.count > 0 {
+			return note.comments.count
+		}
+		return UpdateSectionRow.allCases.count
 	}
 
 	func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -105,7 +145,7 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 				cell.comment.text = comment.text
 			}
 			return cell
-		} else if indexPath.row == 0 {
+		} else if indexPath.row == UpdateSectionRow.comment.rawValue {
 			let cell = tableView.dequeueReusableCell(withIdentifier: "noteResolveCell",
 			                                         for: indexPath) as! NotesNewCommentCell
 			cell.textView.layer.cornerRadius = 5.0
@@ -121,6 +161,18 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 				cell.resolveButton.isHidden = false
 				cell.commentButton.isEnabled = false
 			}
+			configureNewCommentCell(cell)
+			return cell
+		} else if indexPath.row == UpdateSectionRow.shareLink.rawValue {
+			let cell = tableView.dequeueReusableCell(withIdentifier: "noteShareCell")
+				?? UITableViewCell(style: .default, reuseIdentifier: "noteShareCell")
+			cell.textLabel?.text = NSLocalizedString("Open on openstreetmap.org",
+			                                          comment: "share an OSM note link")
+			cell.textLabel?.textAlignment = .center
+			cell.textLabel?.textColor = .link
+			cell.selectionStyle = canShareNoteLink ? .default : .none
+			cell.isUserInteractionEnabled = canShareNoteLink
+			cell.textLabel?.alpha = canShareNoteLink ? 1.0 : 0.4
 			return cell
 		} else {
 			let cell = tableView.dequeueReusableCell(
@@ -134,7 +186,12 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 		view.endEditing(true)
 
 		if indexPath.section == 0, note.comments.count > 0 {
-		} else if indexPath.row == 0 {
+		} else if indexPath.row == UpdateSectionRow.comment.rawValue {
+		} else if indexPath.row == UpdateSectionRow.shareLink.rawValue {
+			if let cell = tableView.cellForRow(at: indexPath) {
+				presentShareSheet(from: cell)
+			}
+			tableView.deselectRow(at: indexPath, animated: true)
 		} else {
 			// open note location using Apple Maps and get directions there
 			let coordinate = CLLocationCoordinate2DMake(self.note.latLon.lat, self.note.latLon.lon)
@@ -209,6 +266,9 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 			newComment = cell.textView.text
 			let s = newComment?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 			cell.commentButton.isEnabled = (s?.count ?? 0) > 0
+			if #unavailable(iOS 15.0) {
+				cell.commentButton.backgroundColor = cell.commentButton.isEnabled ? .systemBlue : .systemGray3
+			}
 		}
 	}
 
@@ -226,10 +286,23 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	}
 
 	@IBAction func shareTapped(_ sender: Any?) {
-		guard note.comments.count > 0 else { return }
+		if let barButton = sender as? UIBarButtonItem {
+			presentShareSheet(from: barButton)
+		} else {
+			presentShareSheet(from: navigationItem.rightBarButtonItem)
+		}
+	}
+
+	func presentShareSheet(from source: Any?) {
+		guard canShareNoteLink else { return }
 		let url = OSM_SERVER.serverURL.appendingPathComponent("note/\(note.noteId)")
 		let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-		activityVC.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
+		if let barButton = source as? UIBarButtonItem {
+			activityVC.popoverPresentationController?.barButtonItem = barButton
+		} else if let view = source as? UIView {
+			activityVC.popoverPresentationController?.sourceView = view
+			activityVC.popoverPresentationController?.sourceRect = view.bounds
+		}
 		present(activityVC, animated: true)
 	}
 
