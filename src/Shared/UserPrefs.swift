@@ -93,6 +93,7 @@ final class UserPrefs {
 	let mapViewEnableRotation = Pref<Bool>(key: "mapViewEnableRotation")
 	let mapViewEnableBreadCrumb = Pref<Bool>(key: "mapViewEnableBreadCrumb")
 	let mapViewEnableDataOverlay = Pref<Bool>(key: "mapViewEnableDataOverlay")
+	let mapViewEnableTrafficSigns = Pref<Bool>(key: "mapViewEnableTrafficSigns")
 	let mapViewEnableTurnRestriction = Pref<Bool>(key: "mapViewEnableTurnRestriction")
 	let automaticCacheManagement = Pref<Bool>(key: "automaticCacheManagement")
 	let latestAerialCheckLatLon = Pref<LatLon.PlistType>(key: "LatestAerialCheckLatLon2")

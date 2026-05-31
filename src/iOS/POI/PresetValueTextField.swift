@@ -183,7 +183,8 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 			?? getOpeningHoursButton()
 			?? getWebsiteButton()
 			?? getDirectionButton()
-		let associatedView2 = getHeightButton()
+		let associatedView2 = getTrafficSignButton()
+			?? getHeightButton()
 			?? getYesNoButton(keyValueDict: owner?.keyValueDict ?? [:])
 			?? getUnitsButton()
 			?? getPhotographButton()
@@ -304,6 +305,33 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 			return button
 		}
 		return nil
+	}
+
+	// MARK: Traffic sign picker
+
+	private func getTrafficSignButton() -> UIView? {
+		guard TrafficSignTagKey.isPickerKey(key) else { return nil }
+		let country = AppDelegate.shared.mainView.currentRegion.country.uppercased()
+		guard TrafficSignCatalog.shared.hasCatalog(forCountryCode: country) else { return nil }
+		let button = UIButton(type: .contactAdd)
+		button.addTarget(self, action: #selector(openTrafficSignPicker(_:)), for: .touchUpInside)
+		return button
+	}
+
+	@objc private func openTrafficSignPicker(_ sender: Any?) {
+		resignFirstResponder()
+		guard let viewController = owner.viewController else { return }
+		let country = AppDelegate.shared.mainView.currentRegion.country.uppercased()
+		let picker = TrafficSignPickerViewController()
+		picker.countryCode = country
+		picker.initialValue = text ?? ""
+		picker.onApply = { [weak self] newValue in
+			self?.text = newValue
+			self?.notifyValueChange(ended: false)
+			self?.notifyValueChange(ended: true)
+		}
+		let nav = UINavigationController(rootViewController: picker)
+		viewController.present(nav, animated: true)
 	}
 
 	// MARK: Set direction button

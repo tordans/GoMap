@@ -17,6 +17,7 @@ class DisplayViewController: UITableViewController {
 	@IBOutlet var notesSwitch: UISwitch!
 	@IBOutlet var questsSwitch: UISwitch!
 	@IBOutlet var dataOverlaySwitch: UISwitch!
+	@IBOutlet var trafficSignSwitch: UISwitch!
 	@IBOutlet var gpxLoggingSwitch: UISwitch!
 	@IBOutlet var turnRestrictionSwitch: UISwitch!
 	@IBOutlet var objectFiltersSwitch: UISwitch!
@@ -80,6 +81,7 @@ class DisplayViewController: UITableViewController {
 		mainView.settings.enableRotation = rotationSwitch.isOn
 		mainView.settings.displayGpxTracks = gpxLoggingSwitch.isOn
 		mainView.mapLayersView.displayDataOverlayLayers = dataOverlaySwitch.isOn
+		mainView.settings.displayTrafficSigns = trafficSignSwitch.isOn
 		mainView.settings.enableTurnRestriction = turnRestrictionSwitch.isOn
 
 		mapView.setNeedsLayout()
@@ -94,6 +96,10 @@ class DisplayViewController: UITableViewController {
 		// need this to take effect immediately in case they exit the app without dismissing this controller, and they want GPS enabled in background
 		let mainView = AppDelegate.shared.mainView!
 		mainView.mapLayersView.displayDataOverlayLayers = dataOverlaySwitch.isOn
+	}
+
+	@IBAction func trafficSignSwitchChanged(_ sender: Any) {
+		AppDelegate.shared.mainView.settings.displayTrafficSigns = trafficSignSwitch.isOn
 	}
 
 	@IBAction func toggleObjectFilters(_ sender: UISwitch) {
@@ -122,6 +128,7 @@ class DisplayViewController: UITableViewController {
 		notesSwitch.isOn = mainView.viewState.overlayMask.contains(.NOTES)
 		questsSwitch.isOn = mainView.viewState.overlayMask.contains(.QUESTS)
 		dataOverlaySwitch.isOn = mainView.mapLayersView.displayDataOverlayLayers
+		trafficSignSwitch.isOn = AppDelegate.shared.mainView.settings.displayTrafficSigns
 
 		gpxLoggingSwitch.isOn = AppDelegate.shared.mainView.settings.displayGpxTracks
 		turnRestrictionSwitch.isOn = AppDelegate.shared.mainView.settings.enableTurnRestriction

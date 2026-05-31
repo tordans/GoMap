@@ -1,0 +1,8 @@
+{
+  "name": "gomap-traffic-signs-build",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@osm-traffic-signs/converter": "^0.4.0"
+  }
+}

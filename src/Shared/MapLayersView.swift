@@ -49,6 +49,7 @@ class MapLayersView: UIView {
 	private(set) var gpxLayer: GpxLayer!
 	private(set) var locatorLayer: MercatorTileLayer!
 	private(set) var dataOverlayLayer: DataOverlayLayer!
+	private(set) var trafficSignOverlayLayer: TrafficSignOverlayLayer!
 	private(set) var quadDownloadLayer: QuadDownloadLayer?
 	private(set) var mapMarkersView: MapMarkersView!
 	// collect all of the above layers
@@ -100,6 +101,16 @@ class MapLayersView: UIView {
 		}
 	}
 
+	var displayTrafficSignOverlay = false {
+		didSet {
+			UserPrefs.shared.mapViewEnableTrafficSigns.value = displayTrafficSignOverlay
+			trafficSignOverlayLayer.isHidden = !displayTrafficSignOverlay
+			if displayTrafficSignOverlay {
+				trafficSignOverlayLayer.refresh()
+			}
+		}
+	}
+
 	func initDefaultChildViews(andAlso more: [LayerOrView]) {
 		for layer in more {
 			allLayers.append(layer)
@@ -127,6 +138,12 @@ class MapLayersView: UIView {
 		dataOverlayLayer.zPosition = ZLAYER.DATA.rawValue
 		dataOverlayLayer.isHidden = true
 		allLayers.append(dataOverlayLayer)
+
+		trafficSignOverlayLayer = TrafficSignOverlayLayer(
+			viewPort: viewPort,
+			mapData: mainView.mapView.mapData)
+		trafficSignOverlayLayer.isHidden = true
+		allLayers.append(trafficSignOverlayLayer)
 
 		mapMarkersView = MapMarkersView(viewPort: viewPort,
 		                                mapData: AppDelegate.shared.mainView.mapView.mapData)
@@ -171,6 +188,16 @@ class MapLayersView: UIView {
 
 		// these need to be loaded late because assigning to them changes the view
 		displayDataOverlayLayers = UserPrefs.shared.mapViewEnableDataOverlay.value ?? false
+		displayTrafficSignOverlay = UserPrefs.shared.mapViewEnableTrafficSigns.value ?? false
+
+		viewPort.mapTransform.onChange.subscribe(self) { [weak self] _ in
+			guard let self, self.displayTrafficSignOverlay else { return }
+			self.trafficSignOverlayLayer.refresh()
+		}
+
+		mainView.settings.$displayTrafficSigns.subscribe(self) { [weak self] enabled in
+			self?.displayTrafficSignOverlay = enabled
+		}
 
 		mainView.settings.$displayGpxTracks.callAndSubscribe(self) { [weak self] displayGpxTracks in
 			self?.gpxLayer.isHidden = !displayGpxTracks

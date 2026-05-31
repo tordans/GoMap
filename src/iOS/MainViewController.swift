@@ -119,6 +119,12 @@ final class MainViewController: UIViewController, DPadDelegate,
 			}
 		}
 
+		@Notify var displayTrafficSigns = UserPrefs.shared.mapViewEnableTrafficSigns.value ?? false {
+			didSet {
+				UserPrefs.shared.mapViewEnableTrafficSigns.value = displayTrafficSigns
+			}
+		}
+
 		@Notify var tileOverlaySelections = UserPrefs.shared.tileOverlaySelections.value ?? [] {
 			didSet {
 				UserPrefs.shared.tileOverlaySelections.value = tileOverlaySelections

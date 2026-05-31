@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FC6F8F1AED48465BBBCE69F0 /* TrafficSignCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D37BDCA2A1C405FBC77C164 /* TrafficSignCatalog.swift */; };
+		EDCC972C9D30446CA25133BD /* TrafficSignComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4678D30DF0D64C35BD418219 /* TrafficSignComposer.swift */; };
+		F2997189E5C74C459D42D6C6 /* TrafficSignOverlayLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1D21F8B30945FAB4038789 /* TrafficSignOverlayLayer.swift */; };
+		5BA8B207F3C1472E80A9FCEB /* TrafficSignPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470862B69D76498182173230 /* TrafficSignPickerViewController.swift */; };
+		FE7D2A1C3A1B4433B1B3F329 /* TrafficSignIndex.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D04070308584759906C94B1 /* TrafficSignIndex.json */; };
+		5376D5E09BC54F8DAE7D6C15 /* TrafficSigns.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F0BEC054D15479B9C7884E7 /* TrafficSigns.xcassets */; };
 		02008650265B25DC008F37DD /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028816A2265AD9D100C30EA2 /* Database.swift */; };
 		0200C1C22703B42600A79804 /* LocationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0200C1C12703B42600A79804 /* LocationParser.swift */; };
 		0200FECD2908B0EB002C3F94 /* GeoJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0200FECC2908B0EB002C3F94 /* GeoJSON.swift */; };
@@ -367,6 +373,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1D37BDCA2A1C405FBC77C164 /* TrafficSignCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TrafficSignCatalog.swift; path = ../Shared/TrafficSigns/TrafficSignCatalog.swift; sourceTree = "<group>"; };
+		4678D30DF0D64C35BD418219 /* TrafficSignComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TrafficSignComposer.swift; path = ../Shared/TrafficSigns/TrafficSignComposer.swift; sourceTree = "<group>"; };
+		1A1D21F8B30945FAB4038789 /* TrafficSignOverlayLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TrafficSignOverlayLayer.swift; path = ../Shared/TrafficSigns/TrafficSignOverlayLayer.swift; sourceTree = "<group>"; };
+		470862B69D76498182173230 /* TrafficSignPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrafficSignPickerViewController.swift; sourceTree = "<group>"; };
+		4D04070308584759906C94B1 /* TrafficSignIndex.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = TrafficSignIndex.json; path = ../traffic-signs/TrafficSignIndex.json; sourceTree = "<group>"; };
+		9F0BEC054D15479B9C7884E7 /* TrafficSigns.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = TrafficSigns.xcassets; path = ../traffic-signs/TrafficSigns.xcassets; sourceTree = "<group>"; };
 		0200C1C12703B42600A79804 /* LocationParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LocationParser.swift; path = ../../Shared/LocationParser.swift; sourceTree = "<group>"; };
 		0200FECC2908B0EB002C3F94 /* GeoJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJSON.swift; sourceTree = "<group>"; };
 		0202C5FD2E3BFD7500649F26 /* CustomSegmentedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomSegmentedControl.swift; sourceTree = "<group>"; };
@@ -781,6 +793,7 @@
 				C3004F61263B2524006BF313 /* POIAllTagsViewController.swift */,
 				C3004F53263A99DC006BF313 /* POIAttributesViewController.swift */,
 				ED964A002601D6A900EC0A60 /* POICommonTagsViewController.swift */,
+				470862B69D76498182173230 /* TrafficSignPickerViewController.swift */,
 				C3D0969B263CBC1100E3B129 /* POIFeaturePickerViewController.swift */,
 				ED9649F82601D58900EC0A60 /* POIPresetValuePickerController.swift */,
 				ED9649F02601CEC800EC0A60 /* POITabBarController.swift */,
@@ -892,6 +905,8 @@
 				02EA545D2AB7CCA3004688F9 /* Localizable.xcstrings */,
 				0254C6CD2579CD88000705B4 /* POI-Icons */,
 				029A17C7257AB8A70035C6ED /* POI-Icons.xcassets */,
+				4D04070308584759906C94B1 /* TrafficSignIndex.json */,
+				9F0BEC054D15479B9C7884E7 /* TrafficSigns.xcassets */,
 				02E9ABC32BA54C9500F0EF69 /* PrivacyInfo.xcprivacy */,
 			);
 			name = "Supporting Files";
@@ -928,6 +943,7 @@
 				02CC7E3C2E2EF248001CA356 /* PhotoCapture.swift */,
 				02CC01CF2584190A004444EF /* PresetsDatabase */,
 				02E9DCD72F0E34B300F372A9 /* PresetsDisplay */,
+				11C8655FEFF540F38088F7CC /* TrafficSigns */,
 				02D1ABA02F6DBE1700C2AE7E /* RightClickGestureRecognizer.swift */,
 				0293B2CE2F5B620F00044DDE /* TableViewControllerMac.swift */,
 				C365A568263FCC9C007DEC94 /* TapAndDragGesture.swift */,
@@ -1299,6 +1315,16 @@
 			path = iD;
 			sourceTree = "<group>";
 		};
+			11C8655FEFF540F38088F7CC /* TrafficSigns */ = {
+				isa = PBXGroup;
+				children = (
+				1D37BDCA2A1C405FBC77C164 /* TrafficSignCatalog.swift */,
+				4678D30DF0D64C35BD418219 /* TrafficSignComposer.swift */,
+				1A1D21F8B30945FAB4038789 /* TrafficSignOverlayLayer.swift */,
+				);
+				name = TrafficSigns;
+				sourceTree = "<group>";
+			};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1499,6 +1525,8 @@
 				02EA545B2AB7CCA3004688F9 /* InfoPlist.xcstrings in Resources */,
 				02CE3CE32990A2C800DDACE0 /* QuestSolver.storyboard in Resources */,
 				029A17C8257AB8A70035C6ED /* POI-Icons.xcassets in Resources */,
+				FE7D2A1C3A1B4433B1B3F329 /* TrafficSignIndex.json in Resources */,
+				5376D5E09BC54F8DAE7D6C15 /* TrafficSigns.xcassets in Resources */,
 				028F504719BA2F460093C423 /* presets in Resources */,
 				02AFBF242458C1E800BE43F4 /* BingPlaceholderImage.png in Resources */,
 				02CE3CEB2991B5FA00DDACE0 /* QuestIcons.xcassets in Resources */,
@@ -1592,6 +1620,10 @@
 				02C456A829C8DB410077E3FD /* TagInfo.swift in Sources */,
 				ED9649C22601C33E00EC0A60 /* TileServerEditViewController.swift in Sources */,
 				0210AE0B2F1D9E120031F047 /* MapLayersView.swift in Sources */,
+				FC6F8F1AED48465BBBCE69F0 /* TrafficSignCatalog.swift in Sources */,
+				EDCC972C9D30446CA25133BD /* TrafficSignComposer.swift in Sources */,
+				F2997189E5C74C459D42D6C6 /* TrafficSignOverlayLayer.swift in Sources */,
+				5BA8B207F3C1472E80A9FCEB /* TrafficSignPickerViewController.swift in Sources */,
 				0202C5FE2E3BFD7500649F26 /* CustomSegmentedControl.swift in Sources */,
 				02CB2405265DB7CB00835F32 /* OpeningHoursRecognizerView.swift in Sources */,
 				0220526429283498003C6AE1 /* CountryCoder.swift in Sources */,

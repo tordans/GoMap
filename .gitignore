@@ -20,3 +20,4 @@ DerivedData/
 *.ipa
 
 src/presets/brandIcons/
+src/traffic-signs/node_modules/
