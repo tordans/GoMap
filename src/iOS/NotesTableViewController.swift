@@ -102,7 +102,7 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 				cell.commentBackground.layer.borderColor = cell.comment.textColor?.cgColor ?? UIColor.black.cgColor
 				cell.commentBackground.layer.borderWidth = 1.0
 				cell.commentBackground.layer.masksToBounds = true
-				cell.comment.text = comment.text
+				configureLinkedCommentTextView(cell.comment, text: comment.text)
 			}
 			return cell
 		} else if indexPath.row == 0 {
@@ -210,6 +210,31 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 			let s = newComment?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 			cell.commentButton.isEnabled = (s?.count ?? 0) > 0
 		}
+	}
+
+	func textView(_ textView: UITextView,
+	              shouldInteractWith url: URL,
+	              in characterRange: NSRange,
+	              interaction: UITextItemInteraction) -> Bool
+	{
+		guard textView.superviewOfType() as NotesOldCommentCell? != nil else {
+			return true
+		}
+		guard url.scheme == "http" || url.scheme == "https" else {
+			return true
+		}
+		PanelWebViewController.present(url: url, from: self)
+		return false
+	}
+
+	private func configureLinkedCommentTextView(_ textView: UITextView, text: String) {
+		textView.delegate = self
+		textView.isEditable = false
+		textView.isSelectable = true
+		textView.isScrollEnabled = false
+		textView.dataDetectorTypes = [.link]
+		textView.linkTextAttributes = [.foregroundColor: UIColor.link]
+		textView.text = text
 	}
 
 	@IBAction func showUser(_ sender: Any?) {

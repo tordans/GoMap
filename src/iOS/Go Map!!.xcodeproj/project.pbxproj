@@ -249,6 +249,7 @@
 		C31315232644292700C0AD86 /* LocationBallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D096D4263EACFF00E3B129 /* LocationBallView.swift */; };
 		C341E1532639DECC0022E983 /* WikiPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C341E1522639DECC0022E983 /* WikiPage.swift */; };
 		C341E15A2639DF210022E983 /* NotesTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C341E1592639DF210022E983 /* NotesTableViewController.swift */; };
+		02A1B2C32F90000100NOTE01 /* PanelWebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A1B2C22F90000100NOTE01 /* PanelWebViewController.swift */; };
 		C341E15C2639DF440022E983 /* NearbyMappersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C341E15B2639DF440022E983 /* NearbyMappersViewController.swift */; };
 		C365A563263FC53F007DEC94 /* TurnRestrictHwyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C365A562263FC53F007DEC94 /* TurnRestrictHwyView.swift */; };
 		C365A569263FCC9C007DEC94 /* TapAndDragGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C365A568263FCC9C007DEC94 /* TapAndDragGesture.swift */; };
@@ -612,6 +613,7 @@
 		C341E1522639DECC0022E983 /* WikiPage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WikiPage.swift; path = ../Shared/WikiPage.swift; sourceTree = "<group>"; };
 		C341E1552639DEFC0022E983 /* FpsLabel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FpsLabel.swift; sourceTree = "<group>"; };
 		C341E1592639DF210022E983 /* NotesTableViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NotesTableViewController.swift; sourceTree = "<group>"; };
+		02A1B2C22F90000100NOTE01 /* PanelWebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelWebViewController.swift; sourceTree = "<group>"; };
 		C341E15B2639DF440022E983 /* NearbyMappersViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NearbyMappersViewController.swift; sourceTree = "<group>"; };
 		C365A562263FC53F007DEC94 /* TurnRestrictHwyView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TurnRestrictHwyView.swift; sourceTree = "<group>"; };
 		C365A566263FCA55007DEC94 /* SpeechBalloonView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeechBalloonView.swift; sourceTree = "<group>"; };
@@ -864,6 +866,7 @@
 				C3D096D7263EAE1E00E3B129 /* MyApplication.swift */,
 				C3004F4C263A6306006BF313 /* NominatimViewController.swift */,
 				C341E1592639DF210022E983 /* NotesTableViewController.swift */,
+				02A1B2C22F90000100NOTE01 /* PanelWebViewController.swift */,
 				02CB2409265DB7D600835F32 /* OpeningHours */,
 				020E0E222F637C4B00A9D27C /* PinchGestureRecognizer.swift */,
 				02A3598F2704E51700101369 /* POI */,
@@ -1597,6 +1600,7 @@
 				0220526429283498003C6AE1 /* CountryCoder.swift in Sources */,
 				C3D096B6263DF82F00E3B129 /* RulerView.swift in Sources */,
 				C341E15A2639DF210022E983 /* NotesTableViewController.swift in Sources */,
+				02A1B2C32F90000100NOTE01 /* PanelWebViewController.swift in Sources */,
 				02BB355D29B6A55D00FB52E5 /* OsmUserPrefs.swift in Sources */,
 				C3D096AE263D4BFB00E3B129 /* UploadViewController.swift in Sources */,
 				0288169E265895FA00C30EA2 /* OsmMapData+Edit.swift in Sources */,
