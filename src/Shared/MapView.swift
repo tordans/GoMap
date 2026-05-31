@@ -844,8 +844,14 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	}
 
 	func refreshPushpinText() {
-		let text = editorLayer.selectedPrimary?.friendlyDescription() ?? NSLocalizedString("(new object)", comment: "")
-		pushPin?.text = text
+		if let object = editorLayer.selectedPrimary {
+			let lines = object.pushpinCalloutLines()
+			pushPin?.setCallout(primary: lines.primary, secondary: lines.secondary)
+		} else {
+			pushPin?.setCallout(
+				primary: NSLocalizedString("(new object)", comment: ""),
+				secondary: nil)
+		}
 	}
 
 	var blinkObject: OsmBaseObject? // used for creating a moving dots animation during selection

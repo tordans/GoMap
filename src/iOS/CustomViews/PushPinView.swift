@@ -13,10 +13,19 @@ typealias PushPinViewDragCallback = (PushPinView, UIGestureRecognizer.State, CGF
 
 final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGestureRecognizerDelegate {
 	private let shapeLayer: CAShapeLayer // shape for balloon
-	private let textLayer: CATextLayer // text in balloon
+	private let primaryTextLayer: CATextLayer
+	private let secondaryTextLayer: CATextLayer
 	private var hittestRect = CGRect.zero
 	private let moveButton: CALayer
 	public let placeholderLayer: CALayer // used for pin tip when no underlying object is selected
+
+	private let primaryFont = UIFont.preferredFont(forTextStyle: .headline)
+	private let secondaryFont = UIFont.preferredFont(forTextStyle: .subheadline)
+	private let secondaryLineGap: CGFloat = 2
+	private let maxTextWidth: CGFloat = 300
+
+	private var primaryText = ""
+	private var secondaryText: String?
 
 	// only move the pin by setting the location, not the arrowPoint
 	var location: LatLon = .zero {
@@ -45,15 +54,30 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 
 	var text: String {
 		get {
-			return textLayer.string as! String
+			return primaryText
 		}
 		set(text) {
-			if text == (textLayer.string as! String) {
-				return
-			}
-			textLayer.string = text
-			setNeedsLayout()
+			setCallout(primary: text, secondary: nil)
 		}
+	}
+
+	func setCallout(primary: String, secondary: String?) {
+		let newPrimary = primary
+		let newSecondary = secondary?.isEmpty == true ? nil : secondary
+		if newPrimary == primaryText, newSecondary == secondaryText {
+			return
+		}
+		primaryText = newPrimary
+		secondaryText = newSecondary
+		primaryTextLayer.string = newPrimary
+		if let newSecondary {
+			secondaryTextLayer.isHidden = false
+			secondaryTextLayer.string = newSecondary
+		} else {
+			secondaryTextLayer.isHidden = true
+			secondaryTextLayer.string = ""
+		}
+		setNeedsLayout()
 	}
 
 	var arrowPoint: CGPoint = .zero {
@@ -85,10 +109,14 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 		shapeLayer.shadowOffset = CGSize(width: 3, height: 3)
 		shapeLayer.shadowOpacity = 0.6
 
-		// text layer
-		textLayer = CATextLayer()
-		textLayer.contentsScale = UIScreen.main.scale
-		textLayer.string = ""
+		primaryTextLayer = CATextLayer()
+		primaryTextLayer.contentsScale = UIScreen.main.scale
+		primaryTextLayer.string = ""
+
+		secondaryTextLayer = CATextLayer()
+		secondaryTextLayer.contentsScale = UIScreen.main.scale
+		secondaryTextLayer.string = ""
+		secondaryTextLayer.isHidden = true
 
 		moveButton = CALayer()
 		moveButton.frame = CGRect(x: 0, y: 0, width: 25, height: 25)
@@ -106,13 +134,10 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 
 		super.init(frame: CGRect.zero)
 
-		let font = UIFont.preferredFont(forTextStyle: .headline)
-		textLayer.font = font
-		textLayer.fontSize = font.pointSize
-		textLayer.alignmentMode = .left
-		textLayer.truncationMode = .end
-		textLayer.foregroundColor = UIColor.white.cgColor
-		shapeLayer.addSublayer(textLayer)
+		configureTextLayer(primaryTextLayer, font: primaryFont)
+		configureTextLayer(secondaryTextLayer, font: secondaryFont)
+		shapeLayer.addSublayer(primaryTextLayer)
+		shapeLayer.addSublayer(secondaryTextLayer)
 
 		shapeLayer.addSublayer(moveButton)
 
@@ -124,13 +149,32 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 		addGestureRecognizer(pan)
 	}
 
+	private func configureTextLayer(_ layer: CATextLayer, font: UIFont) {
+		layer.font = font
+		layer.fontSize = font.pointSize
+		layer.alignmentMode = .left
+		layer.truncationMode = .end
+		layer.foregroundColor = UIColor.white.cgColor
+		layer.isWrapped = true
+	}
+
+	private func boundedTextSize(for layer: CATextLayer) -> CGSize {
+		var textSize = layer.preferredFrameSize()
+		if textSize.width > maxTextWidth {
+			textSize.width = maxTextWidth
+		}
+		return textSize
+	}
+
 	override func layoutSubviews() {
 		super.layoutSubviews()
 
-		var textSize = textLayer.preferredFrameSize()
-		if textSize.width > 300 {
-			textSize.width = 300
-		}
+		let primarySize = boundedTextSize(for: primaryTextLayer)
+		let secondarySize = secondaryText == nil ? CGSize.zero : boundedTextSize(for: secondaryTextLayer)
+		let textSize = CGSize(
+			width: max(primarySize.width, secondarySize.width),
+			height: primarySize.height
+				+ (secondarySize.height > 0 ? secondaryLineGap + secondarySize.height : 0))
 
 		let moveButtonGap: CGFloat = 3.0
 		let buttonVerticalSpacing: CGFloat = 55
@@ -175,11 +219,19 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 		shapeLayer.path = viewPath
 		shapeLayer.shadowPath = viewPath
 
-		textLayer.frame = CGRect(
+		let textColumnWidth = boxSize.width - textAlleyWidth
+		primaryTextLayer.frame = CGRect(
 			x: textAlleyWidth,
 			y: arrowHeight + textAlleyWidth,
-			width: boxSize.width - textAlleyWidth,
-			height: textSize.height)
+			width: textColumnWidth,
+			height: primarySize.height)
+		if secondarySize.height > 0 {
+			secondaryTextLayer.frame = CGRect(
+				x: textAlleyWidth,
+				y: primaryTextLayer.frame.maxY + secondaryLineGap,
+				width: textColumnWidth,
+				height: secondarySize.height)
+		}
 		moveButton.frame = CGRect(
 			x: boxSize.width - moveButton.frame.size.width - 3,
 			y: arrowHeight + (boxSize.height - moveButton.frame.size.height) / 2,
