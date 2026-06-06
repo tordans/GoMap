@@ -142,7 +142,11 @@ final class PresetDisplayForFeature {
 	     geometry: GEOMETRY,
 	     update: (() -> Void)?)
 	{
-		featureName = feature?.localizedName ?? ""
+		if let feature = feature {
+			featureName = feature.localizedKindLabel(for: objectTags) ?? feature.localizedName
+		} else {
+			featureName = ""
+		}
 
 		// Always start with Type and Name
 		let typeTag = PresetDisplayKey(

@@ -170,6 +170,27 @@ class PresetFeature: CustomDebugStringConvertible {
 		return localizedName
 	}
 
+	/// Localized label for a wildcard tag value (e.g. `playground=excavator` → „Spielbagger“)
+	/// using the matching preset field's `strings` options. Returns nil if no strings entry exists.
+	func localizedKindLabel(for objectTags: [String: String]) -> String? {
+		guard let fieldIDs = fields else { return nil }
+		for fieldID in fieldIDs {
+			guard let field = PresetsDatabase.shared.presetFields[fieldID],
+			      let key = field.key,
+			      tags[key] == "*",
+			      let tagValue = objectTags[key],
+			      !tagValue.isEmpty,
+			      let options = field.localizedOptions,
+			      let title = options[tagValue]?.title,
+			      !title.isEmpty
+			else {
+				continue
+			}
+			return title
+		}
+		return nil
+	}
+
 	func summary() -> String? {
 		let parentID = PresetFeature.parentIDofID(featureID)
 		let result = PresetsDatabase.shared.inheritedValueOfFeature(parentID, fieldGetter: { $0.localizedName })

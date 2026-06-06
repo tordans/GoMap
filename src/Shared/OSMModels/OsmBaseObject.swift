@@ -583,11 +583,40 @@ class OsmBaseObject: NSObject, NSCoding, NSCopying {
 		return tags["brand"]
 	}
 
+	func pushpinCalloutLines() -> (primary: String, secondary: String?) {
+		let primary = pushpinCalloutPrimary(withDetails: false)
+		let secondary = pushpinCalloutSecondary(comparedTo: primary)
+		return (primary, secondary)
+	}
+
+	static func calloutTextsAreRedundant(_ a: String, _ b: String) -> Bool {
+		normalizedCalloutText(a) == normalizedCalloutText(b)
+	}
+
+	static func normalizedCalloutText(_ text: String) -> String {
+		text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+	}
+
+	private func pushpinCalloutSecondary(comparedTo primary: String) -> String? {
+		guard let name = givenName()?.trimmingCharacters(in: .whitespacesAndNewlines),
+		      !name.isEmpty
+		else {
+			return nil
+		}
+		if Self.calloutTextsAreRedundant(name, primary) {
+			return nil
+		}
+		return name
+	}
+
 	func friendlyDescription(withDetails details: Bool) -> String {
 		if let name = givenName() {
 			return name
 		}
+		return pushpinCalloutPrimary(withDetails: details)
+	}
 
+	private func pushpinCalloutPrimary(withDetails details: Bool) -> String {
 		let location = AppDelegate.shared.mainView.currentRegion
 		if let feature = PresetsDatabase.shared.presetFeatureMatching(tags: tags,
 		                                                              geometry: geometry(),
@@ -595,6 +624,9 @@ class OsmBaseObject: NSObject, NSCoding, NSCopying {
 		                                                              includeNSI: true),
 			!feature.isGeneric()
 		{
+			if let kindLabel = feature.localizedKindLabel(for: tags) {
+				return kindLabel
+			}
 			return feature.friendlyName()
 		}
 
