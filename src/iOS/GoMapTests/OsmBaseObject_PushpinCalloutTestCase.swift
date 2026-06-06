@@ -74,4 +74,17 @@ class OsmBaseObject_PushpinCalloutTestCase: XCTestCase {
 
 		XCTAssertEqual(node.friendlyDescription(), "Foo")
 	}
+
+	func testPushpinCalloutUsesKindLabelOnLineOneAndNameOnLineTwo() {
+		try? PresetTranslations.shared.setLanguage("de")
+		let node = OsmNode(asUserCreated: "")
+		node.constructTag("playground", value: "excavator")
+		node.constructTag("name", value: "Kinderplatz Nord")
+
+		let lines = node.pushpinCalloutLines()
+
+		XCTAssertEqual(lines.primary, "Spielbagger")
+		XCTAssertEqual(lines.secondary, "Kinderplatz Nord")
+		XCTAssertEqual(node.friendlyDescription(), "Kinderplatz Nord")
+	}
 }
