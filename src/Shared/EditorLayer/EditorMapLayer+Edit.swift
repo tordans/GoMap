@@ -11,6 +11,9 @@ import UniformTypeIdentifiers
 
 extension EditorMapLayer {
 	func undo() {
+		if isGeometryDrawActive {
+			cancelGeometryDraw()
+		}
 		mapData.undo()
 		setNeedsLayout()
 	}
@@ -138,6 +141,9 @@ extension EditorMapLayer {
 	// MARK: Selection
 
 	func selectObjectAtPoint(_ point: CGPoint) {
+		if isGeometryDrawActive {
+			cancelGeometryDraw()
+		}
 		owner.unblinkObject() // used by Mac Catalyst, harmless otherwise
 
 		if selectedWay != nil,
@@ -853,6 +859,9 @@ extension EditorMapLayer {
 	// MARK: Create node/ways
 
 	func longPressAtPoint(_ point: CGPoint) {
+		if isGeometryDrawActive {
+			cancelGeometryDraw()
+		}
 		let objects = osmHitTestMultiple(point, radius: Self.DefaultHitTestRadius)
 		if objects.count == 0 {
 			return

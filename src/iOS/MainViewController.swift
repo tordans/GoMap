@@ -1022,12 +1022,17 @@ final class MainViewController: UIViewController, DPadDelegate,
 		case .began:
 			plusButtonTimestamp = TimeInterval(CACurrentMediaTime())
 		case .ended:
-			if CACurrentMediaTime() - plusButtonTimestamp < 0.5 {
-				// treat as tap, but make sure it occured inside the button
-				let touch = recognizer.location(in: recognizer.view)
-				if recognizer.view?.bounds.contains(touch) ?? false {
+			let duration = CACurrentMediaTime() - plusButtonTimestamp
+			let touch = recognizer.location(in: recognizer.view)
+			let insideButton = recognizer.view?.bounds.contains(touch) ?? false
+			if duration < 0.5 {
+				// Short press: add node at crosshair (unchanged).
+				if insideButton {
 					mapView.rightClick(at: mapView.bounds.center())
 				}
+			} else if insideButton {
+				// Long press: geometry flyout (line / rectangle / circle).
+				presentGeometryDrawFlyout()
 			}
 			plusButtonTimestamp = 0.0
 		case .cancelled, .failed:
@@ -1035,6 +1040,39 @@ final class MainViewController: UIViewController, DPadDelegate,
 		default:
 			break
 		}
+	}
+
+	func presentGeometryDrawFlyout() {
+		let actionSheet = UIAlertController(
+			title: NSLocalizedString("Draw geometry", comment: "Alert title for + long-press"),
+			message: nil,
+			preferredStyle: .actionSheet)
+		actionSheet.addAction(UIAlertAction(
+			title: NSLocalizedString("Line", comment: "geometry draw tool"),
+			style: .default,
+			handler: { [self] _ in
+				mapView.beginGeometryDraw(.line)
+			}))
+		actionSheet.addAction(UIAlertAction(
+			title: NSLocalizedString("Rectangle", comment: "geometry draw tool"),
+			style: .default,
+			handler: { [self] _ in
+				mapView.beginGeometryDraw(.rectangle)
+			}))
+		actionSheet.addAction(UIAlertAction(
+			title: NSLocalizedString("Circle", comment: "geometry draw tool"),
+			style: .default,
+			handler: { [self] _ in
+				mapView.beginGeometryDraw(.circle)
+			}))
+		actionSheet.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: ""),
+		                                    style: .cancel,
+		                                    handler: nil))
+		if let popover = actionSheet.popoverPresentationController {
+			popover.sourceView = addNodeButton
+			popover.sourceRect = addNodeButton.bounds
+		}
+		present(actionSheet, animated: true)
 	}
 
 	func displayButtonLongPressHandler() {
