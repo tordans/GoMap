@@ -1030,7 +1030,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 					editorLayer.addNode(at: point)
 				}
 			} else if editorLayer.isGeometryDrawActive {
-				editorLayer.geometryDrawTap(at: viewPort.screenCenterPoint())
+				editorLayer.geometryDrawHandleMapTap(at: point)
 			} else {
 				editorLayer.selectObjectAtPoint(point)
 			}

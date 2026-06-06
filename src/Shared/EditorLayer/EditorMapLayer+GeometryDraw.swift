@@ -20,12 +20,12 @@ extension EditorMapLayer {
 		let hint: String
 		switch tool {
 		case .line:
-			hint = NSLocalizedString("Line: tap map to add vertices. Undo to cancel.", comment: "geometry draw")
+			hint = NSLocalizedString("Line: tap map to add vertices. Tap an object to finish.", comment: "geometry draw")
 			owner.placePushpin(at: crosshairScreenPoint(), object: nil)
 		case .rectangle:
-			hint = NSLocalizedString("Rectangle: tap three corners. Undo to cancel.", comment: "geometry draw")
+			hint = NSLocalizedString("Rectangle: tap three corners. Tap an object to cancel.", comment: "geometry draw")
 		case .circle:
-			hint = NSLocalizedString("Circle: tap diameter endpoints. Undo to cancel.", comment: "geometry draw")
+			hint = NSLocalizedString("Circle: tap diameter endpoints. Tap an object to cancel.", comment: "geometry draw")
 		}
 		display.flashMessage(title: nil, message: hint)
 		subscribeGeometryDrawPreview()
@@ -38,6 +38,22 @@ extension EditorMapLayer {
 		geometryDrawFixedCorners = []
 		removeGeometryDrawPreview()
 		unsubscribeGeometryDrawPreview()
+	}
+
+	/// Map tap while geometry mode is active: hit an object to cancel and select it; otherwise place at crosshair.
+	func geometryDrawHandleMapTap(at fingerPoint: CGPoint) {
+		var segment = -1
+		if osmHitTest(
+			fingerPoint,
+			radius: Self.DefaultHitTestRadius,
+			isDragConnect: false,
+			ignoreList: [],
+			segment: &segment) != nil
+		{
+			selectObjectAtPoint(fingerPoint)
+		} else {
+			geometryDrawTap(at: crosshairScreenPoint())
+		}
 	}
 
 	func geometryDrawTap(at screenPoint: CGPoint) {
@@ -160,6 +176,11 @@ extension EditorMapLayer {
 
 	private func commitClosedWay(_ corners: [LatLon]) {
 		guard !corners.isEmpty else { return }
+		let undoComment = geometryDrawTool == .circle
+			? NSLocalizedString("Create circle", comment: "geometry draw undo")
+			: NSLocalizedString("Create rectangle", comment: "geometry draw undo")
+		mapData.beginUndoGrouping()
+		mapData.registerUndoCommentString(undoComment)
 		let way = mapData.createWay()
 		var firstNode: OsmNode?
 		for (index, corner) in corners.enumerated() {
@@ -171,6 +192,10 @@ extension EditorMapLayer {
 				let add = try mapData.canAddNode(to: way, at: index)
 				add(node)
 			} catch {
+				mapData.endUndoGrouping()
+				silentUndo = true
+				mapData.undo()
+				silentUndo = false
 				display.showAlert(NSLocalizedString("Can't create shape", comment: ""),
 				                  message: error.localizedDescription)
 				cancelGeometryDraw()
@@ -182,12 +207,17 @@ extension EditorMapLayer {
 				let add = try mapData.canAddNode(to: way, at: corners.count)
 				add(firstNode)
 			} catch {
+				mapData.endUndoGrouping()
+				silentUndo = true
+				mapData.undo()
+				silentUndo = false
 				display.showAlert(NSLocalizedString("Can't create shape", comment: ""),
 				                  message: error.localizedDescription)
 				cancelGeometryDraw()
 				return
 			}
 		}
+		mapData.endUndoGrouping()
 		selectedWay = way
 		selectedNode = nil
 		owner.placePushpinForSelection(at: nil)
