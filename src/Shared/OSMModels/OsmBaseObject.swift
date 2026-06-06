@@ -624,6 +624,9 @@ class OsmBaseObject: NSObject, NSCoding, NSCopying {
 		                                                              includeNSI: true),
 			!feature.isGeneric()
 		{
+			if let kindLabel = feature.localizedKindLabel(for: tags) {
+				return kindLabel
+			}
 			return feature.friendlyName()
 		}
 

@@ -13,6 +13,7 @@
 		0202C5FE2E3BFD7500649F26 /* CustomSegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0202C5FD2E3BFD7500649F26 /* CustomSegmentedControl.swift */; };
 		0202C6002E3C348400649F26 /* ButtonClosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0202C5FF2E3C348400649F26 /* ButtonClosure.swift */; };
 		0203473D26695B2A000A7C3D /* EditorMapLayer+Edit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0203473C26695B2A000A7C3D /* EditorMapLayer+Edit.swift */; };
+		02GEO0082F6374A500A9D27C /* PresetKindLabelTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02GEO0072F6374A500A9D27C /* PresetKindLabelTestCase.swift */; };
 		02034743266C2CB9000A7C3D /* MapMarkerDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02034742266C2CB9000A7C3D /* MapMarkerDatabase.swift */; };
 		0203B06429B3D62900B020DF /* OsmType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0203B06329B3D62900B020DF /* OsmType.swift */; };
 		0203B06529B3D62900B020DF /* OsmType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0203B06329B3D62900B020DF /* OsmType.swift */; };
@@ -373,6 +374,7 @@
 		0202C5FD2E3BFD7500649F26 /* CustomSegmentedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomSegmentedControl.swift; sourceTree = "<group>"; };
 		0202C5FF2E3C348400649F26 /* ButtonClosure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ButtonClosure.swift; path = ../../Shared/Utility/ButtonClosure.swift; sourceTree = "<group>"; };
 		0203473C26695B2A000A7C3D /* EditorMapLayer+Edit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorMapLayer+Edit.swift"; sourceTree = "<group>"; };
+		02GEO0072F6374A500A9D27C /* PresetKindLabelTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetKindLabelTestCase.swift; sourceTree = "<group>"; };
 		02034742266C2CB9000A7C3D /* MapMarkerDatabase.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MapMarkerDatabase.swift; sourceTree = "<group>"; };
 		0203B06329B3D62900B020DF /* OsmType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OsmType.swift; sourceTree = "<group>"; };
 		02072AD51BD46B1700F1CAB4 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
@@ -1188,6 +1190,7 @@
 				64E21EB622651F0D004605D7 /* Helpers */,
 				64C072F9226227D500598078 /* PresetKeyTagCase.swift */,
 				64348CFA225E867800ADE7FB /* MeasureDirectionViewModelTestCase.swift */,
+				02GEO0072F6374A500A9D27C /* PresetKindLabelTestCase.swift */,
 				64348CF6225E867800ADE7FB /* Mocks */,
 				64348D02225E8E4300ADE7FB /* OsmNode_DirectionTestCase.swift */,
 				C8A1B2C3263FE518003142BC /* OsmBaseObject_PushpinCalloutTestCase.swift */,
@@ -1809,6 +1812,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				64348CFE225E867800ADE7FB /* MeasureDirectionViewModelTestCase.swift in Sources */,
+				02GEO0082F6374A500A9D27C /* PresetKindLabelTestCase.swift in Sources */,
 				64C072FA226227D500598078 /* PresetKeyTagCase.swift in Sources */,
 				64348CFC225E867800ADE7FB /* MeasureDirectionViewModelDelegateMock.swift in Sources */,
 				64348CED225E7CD900ADE7FB /* GoMapTests.swift in Sources */,
