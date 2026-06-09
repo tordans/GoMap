@@ -160,6 +160,11 @@ final class MainViewController: UIViewController, DPadDelegate,
 
 	var isInitialized = false
 
+	/// Map rotation (disabled while rotating a selected object).
+	private var screenRotationGesture: RotationGestureRecognizer!
+	private var mapPanGesture: UIPanGestureRecognizer!
+	private var scrollWheelGesture: UIPanGestureRecognizer?
+
 	let viewPort = MapViewPortObject()
 
 	// This contains the user's general vicinity. Although it contains a lat/lon it only
@@ -303,6 +308,7 @@ final class MainViewController: UIViewController, DPadDelegate,
 		}
 		pan.delegate = self
 		view.addGestureRecognizer(pan)
+		mapPanGesture = pan
 
 		let pinch = PinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
 		pinch.delegate = self
@@ -311,6 +317,7 @@ final class MainViewController: UIViewController, DPadDelegate,
 		// two-finger rotation
 		let rotate = RotationGestureRecognizer(target: self, action: #selector(handleRotationGesture(_:)))
 		view.addGestureRecognizer(rotate)
+		screenRotationGesture = rotate
 
 		// Support zoom via tap and drag
 		let tapAndDragGesture = TapAndDragGesture(target: self, action: #selector(handleTapAndDragGesture(_:)))
@@ -321,12 +328,13 @@ final class MainViewController: UIViewController, DPadDelegate,
 
 		if #available(iOS 13.4, macCatalyst 13.0, *) {
 			// use pan gesture to recognize mouse-wheel scrolling (zoom) on iPad and Mac Catalyst
-			let scrollWheelGesture = UIPanGestureRecognizer(
+			let scrollWheel = UIPanGestureRecognizer(
 				target: self,
 				action: #selector(handleScrollWheelGesture(_:)))
-			scrollWheelGesture.allowedScrollTypesMask = .discrete // mouse-wheel only, not trackpad
-			scrollWheelGesture.maximumNumberOfTouches = 0
-			view.addGestureRecognizer(scrollWheelGesture)
+			scrollWheel.allowedScrollTypesMask = .discrete // mouse-wheel only, not trackpad
+			scrollWheel.maximumNumberOfTouches = 0
+			view.addGestureRecognizer(scrollWheel)
+			scrollWheelGesture = scrollWheel
 		}
 
 		// Bindings
@@ -855,7 +863,18 @@ final class MainViewController: UIViewController, DPadDelegate,
 		DisplayLink.shared.remove(.screenPanningInertia)
 	}
 
+	func setObjectRotationModeActive(_ active: Bool) {
+		// Pan, screen rotation, and scroll-wheel zoom compete with object rotation.
+		mapPanGesture.isEnabled = !active
+		screenRotationGesture.isEnabled = !active
+		scrollWheelGesture?.isEnabled = !active
+	}
+
 	@objc func handlePanGesture(_ pan: UIPanGestureRecognizer) {
+		guard mapView.isRotateObjectMode == nil else {
+			return
+		}
+
 		userOverrodeLocationPosition = true
 
 		if pan.state == .began {
@@ -994,12 +1013,19 @@ final class MainViewController: UIViewController, DPadDelegate,
 	}
 
 	@objc func handleTapAndDragGesture(_ tapAndDrag: TapAndDragGesture) {
+		guard mapView.isRotateObjectMode == nil else {
+			return
+		}
 		mapView.handleTapAndDragGesture(tapAndDrag)
 	}
 
 	private var scrollWheelPosition: CGPoint = .zero
 
 	@objc func handleScrollWheelGesture(_ pan: UIPanGestureRecognizer) {
+		guard mapView.isRotateObjectMode == nil else {
+			return
+		}
+
 		switch pan.state {
 		case .began:
 			scrollWheelPosition = pan.location(in: mapView)
