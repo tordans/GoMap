@@ -16,6 +16,11 @@ class NotesOldCommentCell: UITableViewCell {
 	@IBOutlet var action: UILabel!
 	@IBOutlet var comment: UITextView!
 	@IBOutlet var commentBackground: UIView!
+
+	override func prepareForReuse() {
+		super.prepareForReuse()
+		comment.clearDetectedLinks()
+	}
 }
 
 class NotesNewCommentCell: UITableViewCell {
@@ -42,6 +47,7 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 
 		tableView.estimatedRowHeight = 100
 		tableView.rowHeight = UITableView.automaticDimension
+		tableView.delaysContentTouches = false
 
 		// add extra space at bottom so keyboard doesn't cover elements
 		var rc = tableView.contentInset
@@ -95,14 +101,14 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 			cell.user.isEnabled = !isAnonymous
 			if comment.text.count == 0 {
 				cell.commentBackground.isHidden = true
-				cell.comment.text = nil
+				cell.comment.clearDetectedLinks()
 			} else {
 				cell.commentBackground.isHidden = false
 				cell.commentBackground.layer.cornerRadius = 5
 				cell.commentBackground.layer.borderColor = cell.comment.textColor?.cgColor ?? UIColor.black.cgColor
 				cell.commentBackground.layer.borderWidth = 1.0
 				cell.commentBackground.layer.masksToBounds = true
-				cell.comment.text = comment.text
+				cell.comment.configureForDetectedLinks(text: comment.text, delegate: self)
 			}
 			return cell
 		} else if indexPath.row == 0 {
@@ -210,6 +216,21 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 			let s = newComment?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 			cell.commentButton.isEnabled = (s?.count ?? 0) > 0
 		}
+	}
+
+	func textView(_ textView: UITextView,
+	              shouldInteractWith url: URL,
+	              in characterRange: NSRange,
+	              interaction: UITextItemInteraction) -> Bool
+	{
+		guard textView.superviewOfType() as NotesOldCommentCell? != nil else {
+			return true
+		}
+		guard url.isHttpURL else {
+			return true
+		}
+		PanelWebViewController.present(url: url, from: self, sourceView: textView)
+		return false
 	}
 
 	@IBAction func showUser(_ sender: Any?) {
