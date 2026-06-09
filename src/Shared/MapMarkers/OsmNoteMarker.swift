@@ -32,6 +32,14 @@ final class OsmNoteComment {
 final class OsmNoteMarker: MapMarker {
 	private static let recentlyClosedRetention: TimeInterval = 24 * 60 * 60
 
+	static let noteAPIDateFormatter: DateFormatter = {
+		let format = DateFormatter()
+		format.locale = Locale(identifier: "en_US_POSIX")
+		format.dateFormat = "yyyy-MM-dd HH:mm:ss zzz"
+		format.timeZone = TimeZone(secondsFromGMT: 0)
+		return format
+	}()
+
 	let status: String // open, closed, etc.
 	let noteId: Int64
 	let dateCreated: String
@@ -42,14 +50,32 @@ final class OsmNoteMarker: MapMarker {
 		return "note-\(noteId)"
 	}
 
+	override var accessibilityLabel: String? {
+		if isRecentlyClosed {
+			return NSLocalizedString("Recently closed OSM note", comment: "map marker")
+		}
+		return NSLocalizedString("OSM note", comment: "map marker")
+	}
+
 	var isRecentlyClosed: Bool {
 		status == "closed" && !shouldHide()
+	}
+
+	var isClosed: Bool {
+		status == "closed"
 	}
 
 	func shouldHide() -> Bool {
 		guard status == "closed" else { return false }
 		guard let closedDate = dateForClosedStatus() else { return true }
 		return Date().timeIntervalSince(closedDate) > Self.recentlyClosedRetention
+	}
+
+	static func date(fromNoteDateString string: String) -> Date? {
+		if let date = noteAPIDateFormatter.date(from: string) {
+			return date
+		}
+		return OsmBaseObject.rfc3339DateFormatter().date(from: string)
 	}
 
 	override var buttonLabel: String { "N" }
@@ -67,14 +93,20 @@ final class OsmNoteMarker: MapMarker {
 		}
 	}
 
+	override func refreshButtonAppearance() {
+		if let button = button {
+			applyButtonAppearance(to: button)
+		}
+	}
+
 	private func dateForClosedStatus() -> Date? {
 		if let dateClosed,
-		   let date = OsmBaseObject.rfc3339DateFormatter().date(from: dateClosed)
+		   let date = Self.date(fromNoteDateString: dateClosed)
 		{
 			return date
 		}
 		if let closedComment = comments.last(where: { $0.action == "closed" }),
-		   let date = OsmBaseObject.rfc3339DateFormatter().date(from: closedComment.date)
+		   let date = Self.date(fromNoteDateString: closedComment.date)
 		{
 			return date
 		}
@@ -83,18 +115,13 @@ final class OsmNoteMarker: MapMarker {
 
 	private func applyButtonAppearance(to button: UIButton) {
 		if isRecentlyClosed {
-			button.layer.backgroundColor = UIColor.gray.cgColor
+			button.layer.backgroundColor = UIColor.systemGray3.cgColor
 			button.alpha = 0.45
 		} else {
 			button.layer.backgroundColor = UIColor.blue.cgColor
 			button.alpha = 1.0
 		}
-	}
-
-	func refreshButtonAppearance() {
-		if let button = button {
-			applyButtonAppearance(to: button)
-		}
+		button.accessibilityLabel = accessibilityLabel
 	}
 
 	/// A note newly created by user

@@ -42,6 +42,8 @@ class MapMarker {
 		other.button = nil // nullify it so it doesn't get removed on deinit
 	}
 
+	func refreshButtonAppearance() {}
+
 	private static var nextButtonID = (1...).makeIterator()
 
 	init(latLon: LatLon) {
