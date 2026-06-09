@@ -21,22 +21,12 @@ class POITabBarController: UITabBarController {
 		keyValueDict = selection?.tags ?? [:]
 		relationList = selection?.parentRelations ?? []
 
-		var tabIndex = UserPrefs.shared.poiTabIndex.value ?? 0
-		if tabIndex == 2,
-		   selection == nil
-		{
-			tabIndex = 0
+		let savedIndex = UserPrefs.shared.poiTabIndex.value ?? 0
+		let resolved = Self.resolvedTabBar(savedIndex: savedIndex, selection: selection)
+		if resolved.tabCount == 2 {
+			removeAttributesTabFromViewControllers()
 		}
-		if selection == nil {
-			// don't show attributes page
-			var vcList = viewControllers!
-			vcList.removeLast()
-			self.viewControllers = vcList
-		}
-		selectedIndex = tabIndex
-
-		// hide attributes tab on new objects
-		updatePOIAttributesTabBarItemVisibility(withSelectedObject: selection)
+		selectedIndex = resolved.selectedIndex
 
 		if #available(iOS 17, *) {
 			// On MacCatalyst (and maybe iPad) UITabBar is broken.
@@ -73,27 +63,31 @@ class POITabBarController: UITabBarController {
 		selectedViewController?.dismiss(animated: true)
 	}
 
-	/// Hides the POI attributes tab bar item when the user is adding a new item, since it doesn't have any attributes yet.
-	/// - Parameter selectedObject: The object that the user selected on the map.
-	func updatePOIAttributesTabBarItemVisibility(withSelectedObject selectedObject: OsmBaseObject?) {
-		let isAddingNewItem = selectedObject == nil
-		if isAddingNewItem {
-			// Remove the `POIAttributesViewController`.
-			var viewControllersToKeep: [UIViewController] = []
-			for controller in viewControllers ?? [] {
-				if controller is UINavigationController,
-				   (controller as? UINavigationController)?.viewControllers.first is POIAttributesViewController
-				{
-					// For new objects, the navigation controller that contains the view controller
-					// for POI attributes is not needed; ignore it.
-					return
-				} else {
-					viewControllersToKeep.append(controller)
-				}
-			}
+	/// Attributes are only useful for objects that exist on the server (positive OSM id).
+	static func shouldHideAttributesTab(for selection: OsmBaseObject?) -> Bool {
+		guard let selection else { return true }
+		return selection.ident < 0
+	}
 
-			setViewControllers(viewControllersToKeep, animated: false)
+	/// Tab order: 0 Common Tags, 1 All Tags, 2 Attributes.
+	static func resolvedTabBar(
+		savedIndex: Int,
+		selection: OsmBaseObject?
+	) -> (tabCount: Int, selectedIndex: Int) {
+		let hideAttributes = shouldHideAttributesTab(for: selection)
+		let tabCount = hideAttributes ? 2 : 3
+		var selectedIndex = savedIndex
+		if hideAttributes, savedIndex == 2 {
+			selectedIndex = 0
 		}
+		return (tabCount, selectedIndex)
+	}
+
+	private func removeAttributesTabFromViewControllers() {
+		var vcList = viewControllers ?? []
+		guard vcList.count > 2 else { return }
+		vcList.removeLast()
+		viewControllers = vcList
 	}
 
 	func setFeatureKey(_ key: String, value: String?) {
