@@ -22,6 +22,55 @@ class NotesNewCommentCell: UITableViewCell {
 	@IBOutlet var textView: UITextView!
 	@IBOutlet var commentButton: UIButton!
 	@IBOutlet var resolveButton: UIButton!
+
+	private var stackedButtonLayoutConfigured = false
+	private var commentBottomConstraint: NSLayoutConstraint?
+	private(set) var didApplyPrimaryButtonStyle = false
+
+	override func awakeFromNib() {
+		super.awakeFromNib()
+		configureStackedButtonLayoutIfNeeded()
+	}
+
+	private func configureStackedButtonLayoutIfNeeded() {
+		guard !stackedButtonLayoutConfigured else { return }
+		stackedButtonLayoutConfigured = true
+
+		for constraint in contentView.constraints {
+			let involvesComment = [constraint.firstItem, constraint.secondItem]
+				.contains { ($0 as? UIButton) == commentButton }
+			let involvesResolve = [constraint.firstItem, constraint.secondItem]
+				.contains { ($0 as? UIButton) == resolveButton }
+			guard involvesComment || involvesResolve else { continue }
+
+			let keepsCommentTop = (constraint.firstItem as? UIButton) == commentButton
+				&& constraint.firstAttribute == .top
+				&& (constraint.secondItem as? UIView) == textView
+			if keepsCommentTop { continue }
+
+			constraint.isActive = false
+		}
+
+		NSLayoutConstraint.activate([
+			commentButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+			commentButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+			resolveButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+			resolveButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+			resolveButton.topAnchor.constraint(equalTo: commentButton.bottomAnchor, constant: 10),
+			resolveButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+			commentButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+			resolveButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+		])
+
+		commentBottomConstraint = commentButton.bottomAnchor.constraint(
+			equalTo: contentView.bottomAnchor,
+			constant: -8)
+	}
+
+	func setShowsResolveButton(_ shows: Bool) {
+		resolveButton.isHidden = !shows
+		commentBottomConstraint?.isActive = !shows
+	}
 }
 
 class NotesTableViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UITextViewDelegate {
@@ -30,6 +79,12 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	@IBOutlet var tableView: UITableView!
 	var note: OsmNoteMarker!
 	var mapView: MapView!
+
+	private enum UpdateSectionRow {
+		case comment
+		case shareLink
+		case directions
+	}
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
@@ -49,12 +104,64 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 		tableView.contentInset = rc
 	}
 
+	func stylePrimaryActionButton(_ button: UIButton) {
+		let title = button.title(for: .normal)
+		if #available(iOS 15.0, *) {
+			var config = UIButton.Configuration.filled()
+			config.cornerStyle = .medium
+			config.title = title
+			button.configuration = config
+		} else {
+			button.layer.cornerRadius = 10
+			button.clipsToBounds = true
+			button.backgroundColor = button.isEnabled ? .systemBlue : .systemGray3
+			button.setTitleColor(.white, for: .normal)
+		}
+	}
+
+	func configureNewCommentCell(_ cell: NotesNewCommentCell) {
+		let isNewNote = note.comments.count == 0
+		let trimmed = newComment?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
+		cell.setShowsResolveButton(!isNewNote)
+		cell.commentButton.isEnabled = isNewNote ? trimmed.count > 0 : false
+
+		if !cell.didApplyPrimaryButtonStyle {
+			stylePrimaryActionButton(cell.commentButton)
+			stylePrimaryActionButton(cell.resolveButton)
+			cell.didApplyPrimaryButtonStyle = true
+		}
+	}
+
 	override func viewWillAppear(_ animated: Bool) {
 		super.viewWillAppear(animated)
 	}
 
+	/// A persisted OSM note id is required; local draft notes use id 0 until uploaded.
+	var canShareNoteLink: Bool {
+		note.noteId > 0
+	}
+
 	func updateShareButton() {
-		navigationItem.rightBarButtonItem?.isEnabled = note.comments.count > 0
+		navigationItem.rightBarButtonItem?.isEnabled = canShareNoteLink
+	}
+
+	private func isUpdateSection(_ section: Int) -> Bool {
+		note.comments.count == 0 || section == 1
+	}
+
+	private func updateSectionRows() -> [UpdateSectionRow] {
+		var rows: [UpdateSectionRow] = [.comment]
+		if canShareNoteLink {
+			rows.append(.shareLink)
+		}
+		rows.append(.directions)
+		return rows
+	}
+
+	private func updateRow(at index: Int) -> UpdateSectionRow? {
+		let rows = updateSectionRows()
+		guard index >= 0, index < rows.count else { return nil }
+		return rows[index]
 	}
 
 	// MARK: - Table view data source
@@ -72,14 +179,17 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	}
 
 	func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-		if section == 1 {
+		if isUpdateSection(section) {
 			return "\n\n\n\n\n\n\n\n\n"
 		}
 		return nil
 	}
 
 	func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-		return section == 0 && note.comments.count > 0 ? note.comments.count : 2
+		if section == 0, note.comments.count > 0 {
+			return note.comments.count
+		}
+		return updateSectionRows().count
 	}
 
 	func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -105,7 +215,10 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 				cell.comment.text = comment.text
 			}
 			return cell
-		} else if indexPath.row == 0 {
+		}
+
+		switch updateRow(at: indexPath.row) {
+		case .comment:
 			let cell = tableView.dequeueReusableCell(withIdentifier: "noteResolveCell",
 			                                         for: indexPath) as! NotesNewCommentCell
 			cell.textView.layer.cornerRadius = 5.0
@@ -113,20 +226,14 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 			cell.textView.layer.borderWidth = 1.0
 			cell.textView.delegate = self
 			cell.textView.text = newComment
-			if note.comments.count == 0 {
-				// brand new note
-				cell.resolveButton.isHidden = true
-				cell.commentButton.isEnabled = true
-			} else {
-				cell.resolveButton.isHidden = false
-				cell.commentButton.isEnabled = false
-			}
+			configureNewCommentCell(cell)
 			return cell
-		} else {
-			let cell = tableView.dequeueReusableCell(
-				withIdentifier: "noteDirectionsCell",
-				for: indexPath) as UITableViewCell
-			return cell
+		case .shareLink:
+			return tableView.dequeueReusableCell(withIdentifier: "noteShareCell", for: indexPath)
+		case .directions:
+			return tableView.dequeueReusableCell(withIdentifier: "noteDirectionsCell", for: indexPath)
+		case .none:
+			return UITableViewCell()
 		}
 	}
 
@@ -134,8 +241,18 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 		view.endEditing(true)
 
 		if indexPath.section == 0, note.comments.count > 0 {
-		} else if indexPath.row == 0 {
-		} else {
+			return
+		}
+
+		switch updateRow(at: indexPath.row) {
+		case .comment:
+			break
+		case .shareLink:
+			if let cell = tableView.cellForRow(at: indexPath) {
+				presentShareSheet(from: cell)
+			}
+			tableView.deselectRow(at: indexPath, animated: true)
+		case .directions:
 			// open note location using Apple Maps and get directions there
 			let coordinate = CLLocationCoordinate2DMake(self.note.latLon.lat, self.note.latLon.lon)
 			let placemark = MKPlacemark(coordinate: coordinate, addressDictionary: nil)
@@ -146,6 +263,8 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 				MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
 			]
 			MKMapItem.openMaps(with: [current, note], launchOptions: options)
+		case .none:
+			break
 		}
 	}
 
@@ -208,7 +327,12 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 		if let cell: NotesNewCommentCell = textView.superviewOfType() {
 			newComment = cell.textView.text
 			let s = newComment?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-			cell.commentButton.isEnabled = (s?.count ?? 0) > 0
+			if note.comments.count == 0 {
+				cell.commentButton.isEnabled = (s?.count ?? 0) > 0
+				if #unavailable(iOS 15.0) {
+					cell.commentButton.backgroundColor = cell.commentButton.isEnabled ? .systemBlue : .systemGray3
+				}
+			}
 		}
 	}
 
@@ -226,10 +350,23 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	}
 
 	@IBAction func shareTapped(_ sender: Any?) {
-		guard note.comments.count > 0 else { return }
+		if let barButton = sender as? UIBarButtonItem {
+			presentShareSheet(from: barButton)
+		} else {
+			presentShareSheet(from: navigationItem.rightBarButtonItem)
+		}
+	}
+
+	func presentShareSheet(from source: Any?) {
+		guard canShareNoteLink else { return }
 		let url = OSM_SERVER.serverURL.appendingPathComponent("note/\(note.noteId)")
 		let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-		activityVC.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
+		if let barButton = source as? UIBarButtonItem {
+			activityVC.popoverPresentationController?.barButtonItem = barButton
+		} else if let view = source as? UIView {
+			activityVC.popoverPresentationController?.sourceView = view
+			activityVC.popoverPresentationController?.sourceRect = view.bounds
+		}
 		present(activityVC, animated: true)
 	}
 

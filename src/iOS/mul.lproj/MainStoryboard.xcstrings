@@ -103,6 +103,24 @@
         }
       }
     },
+    "Nsh-4r-0sm.text" : {
+      "comment" : "Class = \"UILabel\"; text = \"Open on openstreetmap.org\"; ObjectID = \"Nsh-4r-0sm\";",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf openstreetmap.org öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open on openstreetmap.org"
+          }
+        }
+      }
+    },
     "1xx-L0-hKm.text" : {
       "comment" : "Class = \"UILabel\"; text = \"Get Directions\"; ObjectID = \"1xx-L0-hKm\";",
       "extractionState" : "extracted_with_value",
