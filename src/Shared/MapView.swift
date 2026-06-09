@@ -962,7 +962,11 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			// When the user taps a button we don't want to
 			// select the object underneath it, so we reject
 			// Tap recognizers.
-			if gestureRecognizer is UITapGestureRecognizer || view is PushPinView {
+			if gestureRecognizer is UITapGestureRecognizer
+				|| gestureRecognizer === objectRotationPanGesture
+				|| gestureRecognizer === objectRotationGesture
+				|| view is PushPinView
+			{
 				return false // ignore the touch
 			}
 		}
@@ -1087,9 +1091,14 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			}
 			objectRotationLastAngle = angle
 			editorLayer.rotateContinue(delta: delta, rotate: rotate)
-		case .ended, .cancelled, .failed:
+		case .ended:
 			objectRotationLastAngle = nil
+			editorLayer.rotateFinish()
 			endObjectRotation()
+		case .cancelled, .failed:
+			// Stay in rotate mode so a two-finger rotation can take over when a
+			// second finger is added (which cancels this one-finger pan).
+			objectRotationLastAngle = nil
 			editorLayer.rotateFinish()
 		default:
 			break

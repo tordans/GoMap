@@ -163,6 +163,7 @@ final class MainViewController: UIViewController, DPadDelegate,
 	/// Map rotation (disabled while rotating a selected object).
 	private var screenRotationGesture: RotationGestureRecognizer!
 	private var mapPanGesture: UIPanGestureRecognizer!
+	private var scrollWheelGesture: UIPanGestureRecognizer?
 
 	let viewPort = MapViewPortObject()
 
@@ -327,12 +328,13 @@ final class MainViewController: UIViewController, DPadDelegate,
 
 		if #available(iOS 13.4, macCatalyst 13.0, *) {
 			// use pan gesture to recognize mouse-wheel scrolling (zoom) on iPad and Mac Catalyst
-			let scrollWheelGesture = UIPanGestureRecognizer(
+			let scrollWheel = UIPanGestureRecognizer(
 				target: self,
 				action: #selector(handleScrollWheelGesture(_:)))
-			scrollWheelGesture.allowedScrollTypesMask = .discrete // mouse-wheel only, not trackpad
-			scrollWheelGesture.maximumNumberOfTouches = 0
-			view.addGestureRecognizer(scrollWheelGesture)
+			scrollWheel.allowedScrollTypesMask = .discrete // mouse-wheel only, not trackpad
+			scrollWheel.maximumNumberOfTouches = 0
+			view.addGestureRecognizer(scrollWheel)
+			scrollWheelGesture = scrollWheel
 		}
 
 		// Bindings
@@ -862,9 +864,10 @@ final class MainViewController: UIViewController, DPadDelegate,
 	}
 
 	func setObjectRotationModeActive(_ active: Bool) {
-		// Pan and screen rotation compete with object rotation; disable them in rotate mode.
+		// Pan, screen rotation, and scroll-wheel zoom compete with object rotation.
 		mapPanGesture.isEnabled = !active
 		screenRotationGesture.isEnabled = !active
+		scrollWheelGesture?.isEnabled = !active
 	}
 
 	@objc func handlePanGesture(_ pan: UIPanGestureRecognizer) {
@@ -1019,6 +1022,10 @@ final class MainViewController: UIViewController, DPadDelegate,
 	private var scrollWheelPosition: CGPoint = .zero
 
 	@objc func handleScrollWheelGesture(_ pan: UIPanGestureRecognizer) {
+		guard mapView.isRotateObjectMode == nil else {
+			return
+		}
+
 		switch pan.state {
 		case .began:
 			scrollWheelPosition = pan.location(in: mapView)
