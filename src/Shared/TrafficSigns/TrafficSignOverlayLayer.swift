@@ -93,15 +93,17 @@ final class TrafficSignOverlayLayer: CALayer {
 		let hasForward = !(forwardValue?.isEmpty ?? true)
 		let hasBackward = !(backwardValue?.isEmpty ?? true)
 
+		// Forward direction: directional tag wins over generic.
 		if hasForward {
 			addChainAlongWay(way, value: forwardValue!, country: country, viewPort: viewPort, reversed: false, into: &layers)
-		} else if !hasBackward, let genericValue, !genericValue.isEmpty {
+		} else if let genericValue, !genericValue.isEmpty {
 			addChainAlongWay(way, value: genericValue, country: country, viewPort: viewPort, reversed: false, into: &layers)
 		}
 
+		// Backward direction: directional tag wins; generic fills the other side when only one directional tag exists.
 		if hasBackward {
 			addChainAlongWay(way, value: backwardValue!, country: country, viewPort: viewPort, reversed: true, into: &layers)
-		} else if !hasForward, let genericValue, !genericValue.isEmpty {
+		} else if hasForward, let genericValue, !genericValue.isEmpty {
 			addChainAlongWay(way, value: genericValue, country: country, viewPort: viewPort, reversed: true, into: &layers)
 		}
 	}

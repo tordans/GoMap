@@ -21,10 +21,15 @@ struct TrafficSignEntry: Codable, Equatable {
 	let descriptiveName: String
 	let kind: String
 	let imageName: String
+	let isNamedValue: Bool?
 	let searchTokens: [String]
 
 	var assetName: String {
 		imageName.replacingOccurrences(of: ".svg", with: "")
+	}
+
+	var hasIcon: Bool {
+		!(isNamedValue ?? false) && !assetName.isEmpty
 	}
 }
 
@@ -143,7 +148,8 @@ final class TrafficSignCatalog {
 	}
 
 	func image(for entry: TrafficSignEntry) -> UIImage? {
-		UIImage(named: entry.assetName)
+		guard entry.hasIcon else { return nil }
+		return UIImage(named: entry.assetName)
 	}
 
 	func decompose(tagValue: String, countryCode: String) -> [TrafficSignSelectionItem] {

@@ -4,8 +4,45 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const converterDist = path.join(
+  __dirname,
+  'node_modules',
+  '@osm-traffic-signs',
+  'converter',
+  'dist',
+);
+
+async function loadConverter() {
+  // Import granular modules — the package main entry pulls in SVG loaders Node cannot resolve.
+  const [
+    { countryDefinitions, countries },
+    { namedTrafficSignValues },
+    { buildRedirectMap },
+    { createSvgFilename },
+    { trafficSignTagToSigns },
+    { signsToTrafficSignTagValue },
+  ] = await Promise.all([
+    import(pathToFileURL(path.join(converterDist, 'data-definitions/countryDefinitions.js')).href),
+    import(pathToFileURL(path.join(converterDist, 'data-definitions/namedTrafficSignValues.js')).href),
+    import(pathToFileURL(path.join(converterDist, 'utils/buildRedirectMap.js')).href),
+    import(pathToFileURL(path.join(converterDist, 'utils/createSvgFilename.js')).href),
+    import(pathToFileURL(path.join(converterDist, 'trafficSignTagToSigns/trafficSignTagToSigns.js')).href),
+    import(pathToFileURL(path.join(converterDist, 'signsToTrafficSignTag/signsToTrafficSignTagValue.js')).href),
+  ]);
+  return {
+    countryDefinitions,
+    countries,
+    namedTrafficSignValues,
+    buildRedirectMap,
+    createSvgFilename,
+    trafficSignTagToSigns,
+    signsToTrafficSignTagValue,
+  };
+}
+
+const {
   countryDefinitions,
   countries,
   namedTrafficSignValues,
@@ -13,13 +50,11 @@ import {
   trafficSignTagToSigns,
   signsToTrafficSignTagValue,
   createSvgFilename,
-} from '@osm-traffic-signs/converter';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+} = await loadConverter();
 const outDir = __dirname;
 const assetsDir = path.join(outDir, 'TrafficSigns.xcassets');
 
-/** Frequently used DE signs (osmValuePart without country prefix). */
+/** Curated frequently-used signs for Germany (osmValuePart without country prefix). */
 const FREQUENTLY_USED_DE = [
   '205',
   '206',
@@ -27,14 +62,8 @@ const FREQUENTLY_USED_DE = [
   '274.1',
   '274.2',
   '277',
-  '283',
-  '286',
   '301',
   '306',
-  '310',
-  '314',
-  '314.1',
-  '314.2',
   '325.1',
   '330.1',
   '331.1',
@@ -42,6 +71,15 @@ const FREQUENTLY_USED_DE = [
   'maxspeed',
   'stop',
   'give_way',
+];
+
+const FREQUENT_PATTERNS = [
+  /stop/i,
+  /yield|give way|vorfahrt gewähren|halt!/i,
+  /speed|maxspeed|geschwindigkeit|limit|zone\s*\d/i,
+  /no entry|verbot der einfahrt|interdit|sens interdit/i,
+  /one.?way|einbahn/i,
+  /priority|vorfahrt(?!stra)/i,
 ];
 
 function searchTokens(sign) {
@@ -78,56 +116,105 @@ function writeImageset(name, svgPath) {
   );
 }
 
+function findFrequentByPattern(countryCode, limit = 12) {
+  const signs = countryDefinitions[countryCode];
+  const picked = [];
+  const seen = new Set();
+
+  for (const pat of FREQUENT_PATTERNS) {
+    for (const sign of signs) {
+      if (sign.kind !== 'traffic_sign') continue;
+      const text = `${sign.descriptiveName ?? ''} ${sign.name ?? ''} ${sign.osmValuePart}`;
+      if (pat.test(text) && !seen.has(sign.osmValuePart)) {
+        seen.add(sign.osmValuePart);
+        picked.push(sign.osmValuePart);
+        if (picked.length >= limit) return picked;
+      }
+    }
+  }
+
+  for (const sign of signs) {
+    if (picked.length >= limit) break;
+    if (
+      sign.kind === 'traffic_sign' &&
+      !seen.has(sign.osmValuePart) &&
+      !sign.osmValuePart.includes('"')
+    ) {
+      seen.add(sign.osmValuePart);
+      picked.push(sign.osmValuePart);
+    }
+  }
+  return picked;
+}
+
+function frequentIdsForCountry(countryCode, entries) {
+  const hasEntry = (id) => entries.some((e) => e.osmValuePart === id || e.signId === id);
+
+  let ids;
+  if (countryCode === 'DE') {
+    ids = FREQUENTLY_USED_DE.filter(hasEntry);
+  } else {
+    ids = findFrequentByPattern(countryCode).filter(hasEntry);
+  }
+
+  const named = namedTrafficSignValues.filter(hasEntry);
+  return [...new Set([...named, ...ids])].slice(0, 16);
+}
+
+function catalogEntriesForCountry(countryCode) {
+  const signs = countryDefinitions[countryCode];
+  const entries = signs.map((sign) => ({
+    osmValuePart: sign.osmValuePart,
+    signId: sign.signId,
+    name: sign.name,
+    descriptiveName: sign.descriptiveName,
+    kind: sign.kind,
+    imageName: createSvgFilename(countryCode, sign.osmValuePart),
+    isNamedValue: false,
+    searchTokens: searchTokens(sign),
+  }));
+
+  const osmParts = new Set(entries.map((e) => e.osmValuePart));
+  for (const named of namedTrafficSignValues) {
+    if (!osmParts.has(named)) {
+      entries.push({
+        osmValuePart: named,
+        signId: named,
+        name: named,
+        descriptiveName: named.replace(/_/g, ' '),
+        kind: 'traffic_sign',
+        imageName: '',
+        isNamedValue: true,
+        searchTokens: [named, ...named.split('_')],
+      });
+    }
+  }
+  return entries;
+}
+
 function buildCountryCatalog(countryCode) {
   const signs = countryDefinitions[countryCode];
   const redirectMap = buildRedirectMap(signs);
   const redirects = Object.fromEntries(redirectMap.entries());
-
-  const entries = signs.map((sign) => {
-    const imageName = createSvgFilename(countryCode, sign.osmValuePart);
-    return {
-      osmValuePart: sign.osmValuePart,
-      signId: sign.signId,
-      name: sign.name,
-      descriptiveName: sign.descriptiveName,
-      kind: sign.kind,
-      imageName,
-      searchTokens: searchTokens(sign),
-    };
-  });
-
-  const frequent = FREQUENTLY_USED_DE.filter((id) =>
-    entries.some((e) => e.osmValuePart === id || e.signId === id),
-  );
-
+  const entries = catalogEntriesForCountry(countryCode);
+  const frequent = frequentIdsForCountry(countryCode, entries);
   return { entries, redirects, frequent };
 }
 
-function copySvgs(countryCode) {
-  const svgDir = path.join(
-    __dirname,
-    'node_modules',
-    '@osm-traffic-signs',
-    'converter',
-    'dist',
-    'data-svgs',
-    countryCode,
-    'svgs',
-  );
+function copySvgsForCountry(countryCode) {
+  const svgDir = path.join(converterDist, 'data-svgs', countryCode, 'svgs');
   if (!fs.existsSync(svgDir)) {
-    console.error(`SVG directory not found: ${svgDir}`);
-    process.exit(1);
+    console.warn(`SVG directory not found for ${countryCode}: ${svgDir}`);
+    return 0;
   }
-  ensureDir(assetsDir);
-  fs.writeFileSync(
-    path.join(assetsDir, 'Contents.json'),
-    JSON.stringify({ info: { author: 'xcode', version: 1 } }, null, 2),
-  );
+  let count = 0;
   for (const file of fs.readdirSync(svgDir)) {
     if (!file.endsWith('.svg')) continue;
     const base = file.replace(/\.svg$/, '');
     writeImageset(base, path.join(svgDir, file));
+    count += 1;
   }
+  return count;
 }
 
 // Validate compose/decompose round-trip samples
@@ -148,7 +235,7 @@ for (const countryCode of countries) {
 }
 
 const index = {
-  version: 1,
+  version: 2,
   countries,
   namedTrafficSignValues,
   catalogs,
@@ -156,8 +243,24 @@ const index = {
 
 fs.writeFileSync(path.join(outDir, 'TrafficSignIndex.json'), JSON.stringify(index));
 
-copySvgs('DE');
+// Rebuild asset catalog from scratch
+if (fs.existsSync(assetsDir)) {
+  fs.rmSync(assetsDir, { recursive: true, force: true });
+}
+ensureDir(assetsDir);
+fs.writeFileSync(
+  path.join(assetsDir, 'Contents.json'),
+  JSON.stringify({ info: { author: 'xcode', version: 1 } }, null, 2),
+);
 
+let totalSvgs = 0;
+for (const countryCode of countries) {
+  totalSvgs += copySvgsForCountry(countryCode);
+}
+
+const summary = countries
+  .map((c) => `${c}:${catalogs[c].entries.length}`)
+  .join(', ');
 console.log(
-  `Built TrafficSignIndex.json (${countries.length} countries, ${catalogs.DE.entries.length} DE signs) and TrafficSigns.xcassets`,
+  `Built TrafficSignIndex.json (${countries.length} countries: ${summary}) and TrafficSigns.xcassets (${totalSvgs} SVGs)`,
 );

@@ -199,6 +199,11 @@ class MapLayersView: UIView {
 			self?.displayTrafficSignOverlay = enabled
 		}
 
+		mainView.mapView.mapData.addChangeCallback { [weak self] in
+			guard let self, self.displayTrafficSignOverlay else { return }
+			self.trafficSignOverlayLayer.refresh()
+		}
+
 		mainView.settings.$displayGpxTracks.callAndSubscribe(self) { [weak self] displayGpxTracks in
 			self?.gpxLayer.isHidden = !displayGpxTracks
 			LocationProvider.shared.allowsBackgroundLocationUpdates

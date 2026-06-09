@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "AU_W9_1_R.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

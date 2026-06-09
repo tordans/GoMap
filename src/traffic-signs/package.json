@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@osm-traffic-signs/converter": "^0.4.0"
+    "@osm-traffic-signs/converter": "^0.5.1"
   }
 }

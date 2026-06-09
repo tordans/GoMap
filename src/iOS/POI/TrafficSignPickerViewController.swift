@@ -140,7 +140,7 @@ final class TrafficSignPickerViewController: UIViewController,
 
 		switch item {
 		case let .catalog(entry):
-			imageView.image = catalog.image(for: entry)
+			imageView.image = catalog.image(for: entry) ?? UIImage(systemName: "signpost.right")
 			button.accessibilityLabel = entry.descriptiveName
 		case let .other(_, label):
 			imageView.image = UIImage(systemName: "questionmark.circle")
@@ -253,7 +253,7 @@ private final class TrafficSignPickerCell: UICollectionViewCell {
 	}
 
 	func configure(entry: TrafficSignEntry, image: UIImage?, selected: Bool) {
-		imageView.image = image
+		imageView.image = image ?? UIImage(systemName: "signpost.right")
 		label.text = entry.descriptiveName
 		contentView.backgroundColor = selected ? UIColor.systemBlue.withAlphaComponent(0.15) : .secondarySystemBackground
 		contentView.layer.borderColor = selected ? UIColor.systemBlue.cgColor : UIColor.separator.cgColor

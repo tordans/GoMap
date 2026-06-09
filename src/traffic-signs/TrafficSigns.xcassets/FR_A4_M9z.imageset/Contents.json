@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "FR_A4_M9z.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

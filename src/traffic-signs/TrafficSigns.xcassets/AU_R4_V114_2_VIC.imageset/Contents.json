@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "AU_R4_V114_2_VIC.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}
