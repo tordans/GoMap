@@ -16,6 +16,11 @@ class NotesOldCommentCell: UITableViewCell {
 	@IBOutlet var action: UILabel!
 	@IBOutlet var comment: UITextView!
 	@IBOutlet var commentBackground: UIView!
+
+	override func prepareForReuse() {
+		super.prepareForReuse()
+		comment.clearDetectedLinks()
+	}
 }
 
 class NotesNewCommentCell: UITableViewCell {
@@ -42,6 +47,7 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 
 		tableView.estimatedRowHeight = 100
 		tableView.rowHeight = UITableView.automaticDimension
+		tableView.delaysContentTouches = false
 
 		// add extra space at bottom so keyboard doesn't cover elements
 		var rc = tableView.contentInset
@@ -66,6 +72,9 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 	func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
 		if note.comments.count > 0, section == 0 {
 			return NSLocalizedString("Note History", comment: "OSM note")
+		} else if note.isClosed {
+			return NSLocalizedString("This note is closed. Add a comment to reopen it.",
+			                         comment: "OSM note")
 		} else {
 			return NSLocalizedString("Update", comment: "update an osm note")
 		}
@@ -117,6 +126,10 @@ class NotesTableViewController: UIViewController, UITableViewDataSource, UITable
 				// brand new note
 				cell.resolveButton.isHidden = true
 				cell.commentButton.isEnabled = true
+			} else if note.isClosed {
+				cell.resolveButton.isHidden = true
+				let s = newComment?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+				cell.commentButton.isEnabled = (s?.count ?? 0) > 0
 			} else {
 				cell.resolveButton.isHidden = false
 				cell.commentButton.isEnabled = false

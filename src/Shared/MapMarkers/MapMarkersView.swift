@@ -106,6 +106,7 @@ class MapMarkersView: UIView {
 
 		// Set position of button
 		let button = marker.button!
+		marker.refreshButtonAppearance()
 		button.isHidden = false
 		// We don't want a fixme marker to obscure a POI node, so give it a small offset:
 		let offsetX = (marker is KeepRightMarker) || (marker is FixmeMarker)
