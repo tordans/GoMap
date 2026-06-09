@@ -9,6 +9,11 @@
 import Foundation
 
 extension URL {
+	/// True for standard web links detected in OSM note comments and similar plain text.
+	var isHttpURL: Bool {
+		scheme == "http" || scheme == "https"
+	}
+
 	/// Appends query items to the URL.
 	/// - Parameter queryItems: Dictionary of query parameter names and values
 	/// - Returns: A new URL with the query items appended
