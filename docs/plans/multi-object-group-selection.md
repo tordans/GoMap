@@ -228,7 +228,7 @@ trade-off to the product owner before building the top bar if cost becomes a con
 | 1 | Additive `groupMembers` model (C1); highlight all members (C8); read-only `GroupSelectionBar` showing chips | Keep single-selection paths byte-for-byte unchanged |
 | 2 | Long-press pushpin → create group (C4); group pushpin "Group" label; dedicated group move path (C6) | Gesture coexistence on `PushPinView`; undo grouping |
 | 3 | `GroupAddMode` add / batch-add on the bar's "+" (C5); tap routing in `handleTapGesture`; plain-tap rules (C3) | Tap routing collisions; accidental group loss |
-| 4 | Multi-object tag merge + `mixedKeys` + diff-commit (C2); "Multiple values" placeholder + value list sheet; **unit tests** | **Highest** — data correctness |
+| 4 | Multi-object tag merge + `mixedKeys` + diff-commit (C2); "Multiple values" placeholder + value list sheet; **unit tests** | **Highest** — data correctness | **Done** |
 | 5 | Edit-toolbar gating (C7); edge cases; xliff strings | Action sets, relations in group |
 
 ## Key files
@@ -248,7 +248,7 @@ trade-off to the product owner before building the top bar if cost becomes a con
 - "Multiple values" (mixed-field placeholder)
 - Any group-bar accessibility labels (add member, batch add, dismiss group)
 
-## Implementation notes (Phases 1–3, 5)
+## Implementation notes (Phases 1–5)
 
 Decisions made during implementation:
 
@@ -258,6 +258,7 @@ Decisions made during implementation:
 - **Edit toolbar** — group-active branch offers `[.EDITTAGS]` only; `.DELETE` deferred per C7 open decision (comment in `updateEditControl()`).
 - **Bar placement** — `GroupSelectionBar` pinned below the top button cluster (`safeArea.top + 76`), centered, height 44pt, owned by `MainViewController`, updated from `MapView.selectionDidChange()`.
 - **Long-press pushpin** — seeds group with one member, shows bar, sets `.armed` so the next tap can add a second member immediately.
+- **Phase 4 (tag merge/commit)** — `GroupTagMerge` pure helpers; POI tab loads merged shared tags + `mixedKeys`; commit diffs via `userEditedKeys` only. Relations tab remains anchor-only (`parentRelations` of `selectedPrimary`). Feature-type changes diff old vs new dict and mark every changed key as edited. Mixed preset fields show localized "Multiple values" placeholder (never stored in `keyValueDict`); preset value picker adds a "Current values" section listing per-member values when the key is mixed.
 
 ## Remaining product decisions (non-blocking, pick before Phase 4/5)
 

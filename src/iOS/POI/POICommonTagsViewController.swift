@@ -26,6 +26,7 @@ class FeaturePresetAreaCell: UITableViewCell {
 	@IBOutlet var valueField: UITextView!
 	@IBOutlet var isSet: UIView!
 	var presetKey: PresetDisplayKey!
+	var usesMixedValuePlaceholder = false
 
 	private static let placeholderColor: UIColor = {
 		if #available(iOS 13.0, *) {
@@ -44,6 +45,10 @@ class FeaturePresetAreaCell: UITableViewCell {
 	}()
 
 	func placeholderText() -> String {
+		if usesMixedValuePlaceholder {
+			return NSLocalizedString("Multiple values",
+			                         comment: "Placeholder for a tag field when selected objects have differing values")
+		}
 		return presetKey.placeholder
 	}
 
@@ -133,6 +138,10 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 			tabController.keyValueDict[key] = value
 		} else {
 			tabController.keyValueDict.removeValue(forKey: key)
+		}
+
+		if key != "" {
+			tabController.markKeyEdited(key)
 		}
 
 		saveButton.isEnabled = tabController.isTagDictChanged()
@@ -280,9 +289,17 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 		let tabController = tabBarController as! POITabBarController
 		let geometry = tabController.selection?.geometry() ?? GEOMETRY.POINT
 		let location = AppDelegate.shared.mainView.currentRegion
+		let oldDict = tabController.keyValueDict
 		tabController.keyValueDict = newFeature.objectTagsUpdatedForFeature(tabController.keyValueDict,
 		                                                                    geometry: geometry,
 		                                                                    location: location)
+		if tabController.isGroupEditing {
+			let newDict = tabController.keyValueDict
+			let allKeys = Set(oldDict.keys).union(newDict.keys)
+			for key in allKeys where oldDict[key] != newDict[key] {
+				tabController.markKeyEdited(key)
+			}
+		}
 	}
 
 	// MARK: - Table view data source
@@ -374,12 +391,16 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 				                                         for: indexPath) as! FeaturePresetAreaCell
 				cell.valueField.delegate = self
 				let value = keyValueDict[presetKey.tagKey] ?? ""
-				cell.isSet.backgroundColor = value == "" ? nil : Self.isSetHighlight
+				let isMixed = tabController.isGroupEditing
+					&& tabController.mixedKeys.contains(key)
+					&& keyValueDict[presetKey.tagKey] == nil
+				cell.isSet.backgroundColor = (value == "" || isMixed) ? nil : Self.isSetHighlight
 				cell.valueField.text = value
 				cell.valueField.returnKeyType = .done
 				cell.accessoryType = .none
 				cell.nameLabel.text = presetKey.name
 				cell.presetKey = presetKey
+				cell.usesMixedValuePlaceholder = isMixed
 				if #available(iOS 13.0, *) {
 					cell.valueField.backgroundColor = UIColor.secondarySystemGroupedBackground
 				}
@@ -429,7 +450,6 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 				cell.accessoryType = .none
 				cell.nameLabel.text = presetKey.name
 				cell.valueField.owner = self
-				cell.valueField.placeholder = presetKey.placeholder
 				cell.valueField.delegate = self
 				cell.valueField.presetKey = presetKey
 				cell.presetKey = .key(presetKey)
@@ -442,7 +462,18 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 				cell.valueField.addTarget(self, action: #selector(textFieldEditingDidBegin(_:)), for: .editingDidBegin)
 				cell.valueField.addTarget(self, action: #selector(textFieldDidEndEditing(_:)), for: .editingDidEnd)
 
-				cell.isSet.backgroundColor = keyValueDict[presetKey.tagKey] == nil ? nil : Self.isSetHighlight
+				let isMixed = tabController.isGroupEditing
+					&& tabController.mixedKeys.contains(presetKey.tagKey)
+					&& keyValueDict[presetKey.tagKey] == nil
+				if isMixed {
+					cell.valueField.placeholder = NSLocalizedString(
+						"Multiple values",
+						comment: "Placeholder for a tag field when selected objects have differing values")
+					cell.isSet.backgroundColor = nil
+				} else {
+					cell.valueField.placeholder = presetKey.placeholder
+					cell.isSet.backgroundColor = keyValueDict[presetKey.tagKey] == nil ? nil : Self.isSetHighlight
+				}
 
 				if !presetKey.isYesNo(),
 				   let presets = presetKey.presetValues,
@@ -457,6 +488,7 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 				// Special case for groups that use ":both"
 				// We display the ":both" value if the designated value is empty
 				if value == nil,
+				   !isMixed,
 				   let presetGroup = allPresets?.sectionList[indexPath.section],
 				   presetGroup.usesBoth,
 				   let bothKey = bothKeyFor(preset: presetKey),
@@ -515,11 +547,19 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 		   let cell = sender as? FeaturePresetCell,
 		   case let .key(presetKey) = cell.presetKey
 		{
+			let tabController = tabBarController as! POITabBarController
 			dest.key = presetKey.tagKey
 			dest.presetValueList = presetKey.presetValues ?? []
 			dest.isMultiSelect = presetKey.type == .semiCombo
 			dest.onSetValue = { [weak self] value in
 				self?.updateTagDict(withValue: value, forKey: presetKey.tagKey)
+			}
+			if tabController.isGroupEditing,
+			   tabController.mixedKeys.contains(presetKey.tagKey)
+			{
+				dest.memberValues = tabController.groupMembers.map {
+					($0.friendlyDescription(), $0.tags[presetKey.tagKey] ?? "")
+				}
 			}
 			var name = presetKey.name
 			if let indexPath = tableView.indexPath(for: cell),

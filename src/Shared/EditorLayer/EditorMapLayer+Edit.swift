@@ -135,6 +135,23 @@ extension EditorMapLayer {
 		owner.didUpdateObject()
 	}
 
+	/// Applies tag edits to every group member; only keys in `userEditedKeys` are changed (C2).
+	func setTagsForGroup(editedValues: [String: String], userEditedKeys: Set<String>) {
+		guard isGroupActive else { return }
+
+		mapData.beginUndoGrouping()
+		for member in groupMembers {
+			let newTags = GroupTagMerge.commit(
+				memberTags: member.tags,
+				editedValues: editedValues,
+				userEditedKeys: userEditedKeys)
+			mapData.setTags(newTags, for: member)
+		}
+		mapData.endUndoGrouping()
+		owner.didUpdateObject()
+		setNeedsLayout()
+	}
+
 	// MARK: Selection
 
 	func osmHitTestObject(at point: CGPoint) -> OsmBaseObject? {

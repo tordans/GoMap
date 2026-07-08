@@ -254,6 +254,8 @@
 		C365A569263FCC9C007DEC94 /* TapAndDragGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C365A568263FCC9C007DEC94 /* TapAndDragGesture.swift */; };
 		C381C30B263FE518003142BA /* PushPinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C381C30A263FE518003142BA /* PushPinView.swift */; };
 		A7E8F9022F310A1B00C4D5E6 /* GroupSelectionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E8F9012F310A1B00C4D5E6 /* GroupSelectionBar.swift */; };
+		B8F2A4022F410B2C00D5E7A1 /* GroupTagMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F2A4012F410B2C00D5E7A1 /* GroupTagMerge.swift */; };
+		B8F2A4042F410B2C00D5E7A1 /* GroupTagMergeTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F2A4032F410B2C00D5E7A1 /* GroupTagMergeTestCase.swift */; };
 		C3D0969C263CBC1100E3B129 /* POIFeaturePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D0969B263CBC1100E3B129 /* POIFeaturePickerViewController.swift */; };
 		C3D096AC263D48F700E3B129 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D096AB263D48F700E3B129 /* AppDelegate.swift */; };
 		C3D096AE263D4BFB00E3B129 /* UploadViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D096AD263D4BFB00E3B129 /* UploadViewController.swift */; };
@@ -621,6 +623,8 @@
 		C381C306263FD0E8003142BA /* UndoManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UndoManager.swift; sourceTree = "<group>"; };
 		C381C30A263FE518003142BA /* PushPinView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PushPinView.swift; sourceTree = "<group>"; };
 		A7E8F9012F310A1B00C4D5E6 /* GroupSelectionBar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GroupSelectionBar.swift; sourceTree = "<group>"; };
+		B8F2A4012F410B2C00D5E7A1 /* GroupTagMerge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GroupTagMerge.swift; sourceTree = "<group>"; };
+		B8F2A4032F410B2C00D5E7A1 /* GroupTagMergeTestCase.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GroupTagMergeTestCase.swift; sourceTree = "<group>"; };
 		C3D0969B263CBC1100E3B129 /* POIFeaturePickerViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = POIFeaturePickerViewController.swift; sourceTree = "<group>"; };
 		C3D0969F263CD4BD00E3B129 /* PersistentWebCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PersistentWebCache.swift; path = ../Shared/PersistentWebCache.swift; sourceTree = "<group>"; };
 		C3D096A2263CEBBC00E3B129 /* EditorMapLayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditorMapLayer.swift; sourceTree = "<group>"; };
@@ -1196,6 +1200,7 @@
 				64348CEE225E7CD900ADE7FB /* Info.plist */,
 				64E21EB422651C06004605D7 /* OSMMapDataTestCase.swift */,
 				64305F7323E723B200232BB9 /* LocationURLParserTestCase.swift */,
+				B8F2A4032F410B2C00D5E7A1 /* GroupTagMergeTestCase.swift */,
 			);
 			path = GoMapTests;
 			sourceTree = "<group>";
@@ -1251,6 +1256,7 @@
 				02E049BC2651D1750028B57F /* UndoAction.h */,
 				02E049BD2651D1750028B57F /* UndoAction.m */,
 				C381C306263FD0E8003142BA /* UndoManager.swift */,
+				B8F2A4012F410B2C00D5E7A1 /* GroupTagMerge.swift */,
 			);
 			name = OSMModels;
 			path = ../Shared/OSMModels;
@@ -1619,6 +1625,7 @@
 				C365A563263FC53F007DEC94 /* TurnRestrictHwyView.swift in Sources */,
 				C3D096B3263D618E00E3B129 /* HeightViewController.swift in Sources */,
 				02E049BB2651BAB90028B57F /* UndoManager.swift in Sources */,
+				B8F2A4022F410B2C00D5E7A1 /* GroupTagMerge.swift in Sources */,
 				02D2FD4F29B016BC00483F4D /* PresetValueTextField.swift in Sources */,
 				028C51E625CB7A23004A88F7 /* TristateButton.swift in Sources */,
 				C3D096DC263EB7DE00E3B129 /* MyApplication.swift in Sources */,
@@ -1814,6 +1821,7 @@
 				64348CFC225E867800ADE7FB /* MeasureDirectionViewModelDelegateMock.swift in Sources */,
 				64348CED225E7CD900ADE7FB /* GoMapTests.swift in Sources */,
 				64305F7423E723B200232BB9 /* LocationURLParserTestCase.swift in Sources */,
+				B8F2A4042F410B2C00D5E7A1 /* GroupTagMergeTestCase.swift in Sources */,
 				64348CFB225E867800ADE7FB /* HeadingProviderMock.swift in Sources */,
 				02A59EEB298312F500B0A676 /* Require.swift in Sources */,
 				64E21EB822651F2D004605D7 /* XCTestCase+UserDefaults.swift in Sources */,

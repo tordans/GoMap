@@ -1268,6 +1268,8 @@ extension MapView: UISheetPresentationControllerDelegate {
 extension MapView {
 	var mapData: OsmMapData { editorLayer?.mapData ?? OsmMapData() }
 	var selectedPrimary: OsmBaseObject? { editorLayer.selectedPrimary }
+	var isGroupActive: Bool { editorLayer.isGroupActive }
+	var groupMembers: [OsmBaseObject] { editorLayer.groupMembers }
 	var objectFilters: EditorFilters { editorLayer.objectFilters }
 	var selections: MapView.Selections { editorLayer.selections }
 	var shownObjects: ContiguousArray<OsmBaseObject> { editorLayer.shownObjects }
@@ -1278,6 +1280,10 @@ extension MapView {
 
 	func setTagsForCurrentObject(tags: [String: String]) {
 		editorLayer.setTagsForCurrentObject(tags)
+	}
+
+	func setTagsForGroup(editedValues: [String: String], userEditedKeys: Set<String>) {
+		editorLayer.setTagsForGroup(editedValues: editedValues, userEditedKeys: userEditedKeys)
 	}
 
 	func purgeCachedData(_ style: EditorMapLayer.MapDataPurgeStyle) {
