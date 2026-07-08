@@ -1128,11 +1128,11 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			if editorLayer.groupAddMode != .off {
 				if let hit = editorLayer.osmHitTestObject(at: point) {
 					if editorLayer.isGroupMember(hit) {
-						// Toggle removal in add mode — better UX than add-only.
-						editorLayer.removeGroupMember(hit)
-						if editorLayer.groupMembers.isEmpty {
-							unselectAll()
-						} else {
+						// Skip toggle-remove when it would empty a 1-member session
+						// (e.g. long-press just created the group).
+						if editorLayer.groupMembers.count > 1 {
+							// Toggle removal in add mode — better UX than add-only.
+							editorLayer.removeGroupMember(hit)
 							updateGroupSelectionBar()
 							refreshPushpinText()
 						}
@@ -1157,7 +1157,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 				return
 			}
 
-			if editorLayer.isGroupActive {
+			if editorLayer.isGroupSessionActive {
 				if let hit = editorLayer.osmHitTestObject(at: point) {
 					if editorLayer.isGroupMember(hit) {
 						reanchorGroup(to: hit)

@@ -815,11 +815,11 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 
 		let value = textView.text?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
 		textView.text = value
-		textViewDidChange(textView)
 		if shouldPreserveMixedKey(cell.presetKey.tagKey, value: value) {
 			cell.addPlaceholderText()
 			return
 		}
+		textViewDidChange(textView)
 		updateTagDict(withValue: value, forKey: cell.presetKey.tagKey)
 
 		// fake placeholder text
