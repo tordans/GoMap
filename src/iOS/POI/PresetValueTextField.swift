@@ -178,6 +178,7 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 
 	private func updateAssociatedContent() {
 		// Swift doesn't like too many ??'s so we break it into pieces 🤷‍♂️
+		let trafficSignButton = TrafficSignTagKey.isPickerKey(key) ? getTrafficSignButton() : nil
 		let associatedView1 = getSurveyDateButton()
 			?? getAssociatedColor()
 			?? getOpeningHoursButton()
@@ -188,7 +189,7 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 			?? getUnitsButton()
 			?? getPhotographButton()
 
-		rightView = associatedView1 ?? associatedView2
+		rightView = trafficSignButton ?? associatedView1 ?? associatedView2
 		rightViewMode = rightView != nil ? .always : .never
 		if #available(iOS 13.0, *) {
 			// great
@@ -304,6 +305,34 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 			return button
 		}
 		return nil
+	}
+
+	// MARK: Traffic sign picker
+
+	private func getTrafficSignButton() -> UIView? {
+		guard TrafficSignTagKey.isPickerKey(key) else { return nil }
+		let country = AppDelegate.shared.mainView.currentRegion.country.uppercased()
+		guard TrafficSignCatalog.shared.hasCatalog(forCountryCode: country) else { return nil }
+		let button = UIButton(type: .contactAdd)
+		button.accessibilityLabel = NSLocalizedString("Choose traffic signs", comment: "Open traffic sign picker")
+		button.addTarget(self, action: #selector(openTrafficSignPicker(_:)), for: .touchUpInside)
+		return button
+	}
+
+	@objc private func openTrafficSignPicker(_ sender: Any?) {
+		resignFirstResponder()
+		guard let viewController = owner.viewController else { return }
+		let country = AppDelegate.shared.mainView.currentRegion.country.uppercased()
+		let picker = TrafficSignPickerViewController()
+		picker.countryCode = country
+		picker.initialValue = text ?? ""
+		picker.onApply = { [weak self] newValue in
+			self?.text = newValue
+			self?.notifyValueChange(ended: false)
+			self?.notifyValueChange(ended: true)
+		}
+		let nav = UINavigationController(rootViewController: picker)
+		viewController.present(nav, animated: true)
 	}
 
 	// MARK: Set direction button

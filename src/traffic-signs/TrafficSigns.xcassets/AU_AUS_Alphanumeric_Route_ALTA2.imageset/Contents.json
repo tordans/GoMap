@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "AU_AUS_Alphanumeric_Route_ALTA2.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

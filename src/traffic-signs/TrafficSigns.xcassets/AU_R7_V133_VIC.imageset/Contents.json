@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "AU_R7_V133_VIC.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

@@ -1462,6 +1462,35 @@ Clear the Basemap or Overlay tile caches  to download the latest tiles that refl
                                             <segue destination="6IN-iQ-idE" kind="push" id="kKF-Jz-lSm"/>
                                         </connections>
                                     </tableViewCell>
+                                    <tableViewCell contentMode="scaleToFill" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" id="TsG-c7-ovr">
+                                        <rect key="frame" x="0.0" y="459.5" width="414" height="44"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="TsG-c7-ovr" id="TsG-c7-cnt">
+                                            <rect key="frame" x="0.0" y="0.0" width="414" height="44"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Show Traffic Signs" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="TsG-c7-lbl">
+                                                    <rect key="frame" x="15" y="11.5" width="160" height="21"/>
+                                                    <fontDescription key="fontDescription" style="UICTFontTextStyleHeadline"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="TsG-c7-sw">
+                                                    <rect key="frame" x="304.5" y="8" width="63" height="28"/>
+                                                    <connections>
+                                                        <action selector="trafficSignSwitchChanged:" destination="UfZ-fJ-hyB" eventType="valueChanged" id="TsG-c7-act"/>
+                                                    </connections>
+                                                </switch>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="TsG-c7-sw" firstAttribute="centerY" secondItem="TsG-c7-lbl" secondAttribute="centerY" id="TsG-c7-c1"/>
+                                                <constraint firstAttribute="trailingMargin" secondItem="TsG-c7-sw" secondAttribute="trailing" constant="10" id="TsG-c7-c2"/>
+                                                <constraint firstItem="TsG-c7-sw" firstAttribute="centerY" secondItem="TsG-c7-cnt" secondAttribute="centerY" id="TsG-c7-c3"/>
+                                                <constraint firstItem="TsG-c7-lbl" firstAttribute="leading" secondItem="TsG-c7-cnt" secondAttribute="leading" constant="15" id="TsG-c7-c4"/>
+                                                <constraint firstItem="TsG-c7-sw" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="TsG-c7-lbl" secondAttribute="trailing" constant="1" id="TsG-c7-c5"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
                                     <tableViewCell contentMode="scaleToFill" selectionStyle="none" accessoryType="disclosureIndicator" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" id="Rkj-Pf-H5s">
                                         <rect key="frame" x="0.0" y="459.5" width="414" height="44"/>
                                         <autoresizingMask key="autoresizingMask"/>
@@ -1663,6 +1692,7 @@ Clear the Basemap or Overlay tile caches  to download the latest tiles that refl
                     <connections>
                         <outlet property="addButtonPosition" destination="el8-h8-H1F" id="gtU-mk-rXW"/>
                         <outlet property="dataOverlaySwitch" destination="ChK-1Z-4v8" id="954-PF-6OI"/>
+                        <outlet property="trafficSignSwitch" destination="TsG-c7-sw" id="TsG-c7-out"/>
                         <outlet property="gpxLoggingSwitch" destination="1jq-Mx-hmn" id="Xjp-YQ-1CM"/>
                         <outlet property="notesSwitch" destination="aVH-WM-e7u" id="xGS-hj-vN8"/>
                         <outlet property="objectFiltersSwitch" destination="sdA-WB-aRv" id="Gfo-Ch-zqZ"/>

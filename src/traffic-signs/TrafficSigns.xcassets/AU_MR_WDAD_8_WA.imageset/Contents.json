@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "AU_MR_WDAD_8_WA.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}
