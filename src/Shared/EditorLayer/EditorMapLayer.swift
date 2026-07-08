@@ -1272,10 +1272,19 @@ final class EditorMapLayer: CALayer {
 			let members = obj.allMemberObjects()
 			highlights = highlights.union(members)
 		}
+		for member in groupMembers {
+			if let relation = member as? OsmRelation {
+				highlights = highlights.union(relation.allMemberObjects())
+				highlights.insert(member)
+			} else {
+				highlights.insert(member)
+			}
+		}
 
 		for object in highlights {
 			// selected is false if its highlighted because it's a member of a selected relation
 			let selected = object == selectedNode || object == selectedWay
+				|| groupMembers.contains(where: { $0 === object })
 
 			if let way = object as? OsmWay {
 				let path = self.path(for: way)
@@ -1786,6 +1795,100 @@ final class EditorMapLayer: CALayer {
 	}
 
 	// MARK: Highlighting and Selection
+
+	enum GroupAddMode {
+		case off
+		case armed
+		case batch
+	}
+
+	private(set) var groupMembers: [OsmBaseObject] = [] {
+		didSet {
+			if !Self.sameGroupMemberList(oldValue, groupMembers) {
+				setNeedsLayout()
+				owner.selectionDidChange()
+			}
+		}
+	}
+
+	var isGroupActive: Bool { groupMembers.count > 1 }
+
+	var groupAddMode: GroupAddMode = .off {
+		didSet {
+			if oldValue != groupAddMode {
+				owner.selectionDidChange()
+			}
+		}
+	}
+
+	private static func sameGroupMemberList(_ a: [OsmBaseObject], _ b: [OsmBaseObject]) -> Bool {
+		if a.count != b.count {
+			return false
+		}
+		for (left, right) in zip(a, b) {
+			if left !== right {
+				return false
+			}
+		}
+		return true
+	}
+
+	func startGroup(with object: OsmBaseObject) {
+		groupMembers = [object]
+		setSelectionSlots(from: object)
+	}
+
+	func addGroupMember(_ object: OsmBaseObject) {
+		if groupMembers.contains(where: { $0 === object }) {
+			return
+		}
+		if groupMembers.isEmpty {
+			if let primary = selectedPrimary {
+				groupMembers = [primary]
+			}
+		}
+		groupMembers.append(object)
+	}
+
+	func removeGroupMember(_ object: OsmBaseObject) {
+		guard let index = groupMembers.firstIndex(where: { $0 === object }) else {
+			return
+		}
+		groupMembers.remove(at: index)
+		if groupMembers.isEmpty {
+			clearGroup()
+			return
+		}
+		if index == 0 {
+			setSelectionSlots(from: groupMembers[0])
+		}
+	}
+
+	func reanchorGroup(to object: OsmBaseObject) {
+		guard let index = groupMembers.firstIndex(where: { $0 === object }) else {
+			return
+		}
+		if index != 0 {
+			groupMembers.remove(at: index)
+			groupMembers.insert(object, at: 0)
+		}
+		setSelectionSlots(from: object)
+	}
+
+	func clearGroup() {
+		groupMembers = []
+		groupAddMode = .off
+	}
+
+	func isGroupMember(_ object: OsmBaseObject) -> Bool {
+		groupMembers.contains(where: { $0 === object })
+	}
+
+	private func setSelectionSlots(from object: OsmBaseObject) {
+		selectedNode = object as? OsmNode
+		selectedWay = object as? OsmWay
+		selectedRelation = object as? OsmRelation
+	}
 
 	var selections: MapView.Selections {
 		get {

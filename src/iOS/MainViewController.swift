@@ -151,6 +151,7 @@ final class MainViewController: UIViewController, DPadDelegate,
 	@IBOutlet var mapView: MapView!
 	let locationBallView = LocationBallView()
 	let mapLayersView = MapLayersView()
+	let groupSelectionBar = GroupSelectionBar()
 
 	let settings = DisplaySettings()
 
@@ -210,6 +211,18 @@ final class MainViewController: UIViewController, DPadDelegate,
 			mapLayersView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
 		])
 		view.sendSubviewToBack(mapLayersView)
+
+		groupSelectionBar.translatesAutoresizingMaskIntoConstraints = false
+		view.addSubview(groupSelectionBar)
+		NSLayoutConstraint.activate([
+			groupSelectionBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 76),
+			groupSelectionBar.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+			groupSelectionBar.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor,
+			                                         constant: 8),
+			groupSelectionBar.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor,
+			                                          constant: -8),
+			groupSelectionBar.heightAnchor.constraint(equalToConstant: 44)
+		])
 
 		userInstructionLabel.text = NSLocalizedString("Zoom to Edit", comment: "")
 

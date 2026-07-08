@@ -205,8 +205,8 @@ design. Constraints (no precedent exists, so be careful):
 - A trailing **"+"** control implementing the `GroupAddMode` flow (C5) with a clear
   pressed/armed visual state and a distinct batch-mode state.
 - A clear **close/dismiss** control (C3 exit).
-- New file: `GroupSelectionBar.swift`, added programmatically (mirroring how
-  `mapLayersView` and the magnifying glass are added in `MapView.awakeFromNib`).
+- New file: `GroupSelectionBar.swift`, added programmatically in `MainViewController.viewDidLoad`
+  (mirroring how `mapLayersView` is set up).
 
 Lower-surface alternative to evaluate during implementation: reuse/extend the existing
 bottom `editToolbar` area instead of a brand-new top bar. This is more consistent with
@@ -248,10 +248,21 @@ trade-off to the product owner before building the top bar if cost becomes a con
 - "Multiple values" (mixed-field placeholder)
 - Any group-bar accessibility labels (add member, batch add, dismiss group)
 
+## Implementation notes (Phases 1–3, 5)
+
+Decisions made during implementation:
+
+- **Add-mode tap toggles members** — tapping an object already in the group while `groupAddMode` is active removes it (not add-only), for quicker correction.
+- **Pushpin label** — localized `Group (%d)` with member count when `isGroupActive` (count > 1).
+- **Empty-space dismiss** — tapping empty map while a group is active clears the group and selection (`unselectAll()`); documented in the bar close button accessibility hint.
+- **Edit toolbar** — group-active branch offers `[.EDITTAGS]` only; `.DELETE` deferred per C7 open decision (comment in `updateEditControl()`).
+- **Bar placement** — `GroupSelectionBar` pinned below the top button cluster (`safeArea.top + 76`), centered, height 44pt, owned by `MainViewController`, updated from `MapView.selectionDidChange()`.
+- **Long-press pushpin** — seeds group with one member, shows bar, sets `.armed` so the next tap can add a second member immediately.
+
 ## Remaining product decisions (non-blocking, pick before Phase 4/5)
 
 - Maximum group size / performance ceiling with many ways (union node-set drag cost).
-- Whether `DELETE` is offered for a whole group in the edit toolbar (C7).
+- Whether `DELETE` is offered for a whole group in the edit toolbar (C7) — **v1: EDITTAGS only**.
 - Relations in a group: include the relation as a whole, or only its member ways/nodes?
 - Whether a tap on empty space dismisses the group, or only the explicit close control
-  does (C3) — pick one and document it in the bar's accessibility hint.
+  does (C3) — **implemented: empty-space tap dismisses** (see bar accessibility hint).

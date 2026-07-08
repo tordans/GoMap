@@ -76,6 +76,10 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 	}
 
 	var dragCallback: PushPinViewDragCallback = { _, _, _, _ in }
+	var longPressCallback: () -> Void = {}
+
+	private var panRecognizer: UIPanGestureRecognizer!
+	private var longPressRecognizer: UILongPressGestureRecognizer!
 
 	init() {
 		shapeLayer = CAShapeLayer()
@@ -121,7 +125,14 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 
 		let pan = UIPanGestureRecognizer(target: self, action: #selector(draggingGesture(_:)))
 		pan.delegate = self
+		panRecognizer = pan
 		addGestureRecognizer(pan)
+
+		let longPress = UILongPressGestureRecognizer(target: self, action: #selector(longPressGesture(_:)))
+		longPress.minimumPressDuration = 0.5
+		longPress.delegate = self
+		longPressRecognizer = longPress
+		addGestureRecognizer(longPress)
 	}
 
 	override func layoutSubviews() {
@@ -277,6 +288,27 @@ final class PushPinView: UIButton, MapPositionedView, CAAnimationDelegate, UIGes
 		dragCallback(self, gesture.state, delta.x, delta.y)
 
 		gesture.setTranslation(.zero, in: self)
+	}
+
+	@objc private func longPressGesture(_ gesture: UILongPressGestureRecognizer) {
+		guard gesture.state == .began else {
+			return
+		}
+		let feedback = UIImpactFeedbackGenerator(style: .light)
+		feedback.impactOccurred()
+		longPressCallback()
+	}
+
+	func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+	                       shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool
+	{
+		let pair = (gestureRecognizer, otherGestureRecognizer)
+		if (pair.0 === panRecognizer && pair.1 === longPressRecognizer)
+			|| (pair.0 === longPressRecognizer && pair.1 === panRecognizer)
+		{
+			return false
+		}
+		return true
 	}
 
 	@available(*, unavailable)
