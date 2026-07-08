@@ -15,6 +15,8 @@ class POIPresetValuePickerController: UITableViewController {
 	var isMultiSelect = false
 	var descriptions: [String: String] = [:]
 	var images: [String: UIImage] = [:]
+	/// When non-empty, an extra first section lists each group member's current value for `key`.
+	var memberValues: [(label: String, value: String)] = []
 
 	private var selectedValues: [String] = []
 
@@ -105,14 +107,21 @@ class POIPresetValuePickerController: UITableViewController {
 	// MARK: - Table view data source
 
 	override func numberOfSections(in tableView: UITableView) -> Int {
-		1
+		memberValues.isEmpty ? 1 : 2
 	}
 
 	override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-		presetValueList.count
+		if !memberValues.isEmpty, section == 0 {
+			return memberValues.count
+		}
+		return presetValueList.count
 	}
 
 	override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+		if !memberValues.isEmpty, section == 0 {
+			return NSLocalizedString("Current values",
+			                         comment: "Section header listing each selected object's value for a tag")
+		}
 		return nil
 	}
 
@@ -121,6 +130,20 @@ class POIPresetValuePickerController: UITableViewController {
 	}
 
 	override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+		if !memberValues.isEmpty, indexPath.section == 0 {
+			let cell = tableView.dequeueReusableCell(withIdentifier: "SubtitleCell", for: indexPath)
+			let entry = memberValues[indexPath.row]
+			cell.textLabel?.text = entry.label
+			if entry.value.isEmpty {
+				cell.detailTextLabel?.text = NSLocalizedString("(empty)", comment: "Shown when a group member has no value for a tag")
+			} else {
+				cell.detailTextLabel?.text = entry.value
+			}
+			cell.imageView?.image = nil
+			cell.accessoryType = .none
+			return cell
+		}
+
 		let preset = presetValueList[indexPath.row]
 
 		let cell: UITableViewCell = tableView.dequeueReusableCell(withIdentifier: "SubtitleCell", for: indexPath)
@@ -152,6 +175,13 @@ class POIPresetValuePickerController: UITableViewController {
 	}
 
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+		if !memberValues.isEmpty, indexPath.section == 0 {
+			let value = memberValues[indexPath.row].value
+			onSetValue?(value)
+			navigationController?.popViewController(animated: true)
+			return
+		}
+
 		let preset = presetValueList[indexPath.row]
 		if isMultiSelect {
 			if let i = selectedValues.firstIndex(of: preset.tagValue) {

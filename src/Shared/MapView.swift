@@ -49,6 +49,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	private var magnifyingGlass: MagnifyingGlass!
 
 	private var editControlActions: [EDIT_ACTION] = []
+	private var hasShownGroupAddHint = false
 
 	weak var mainView: MainViewController!
 	var viewPort: MapViewPort { mainView.viewPort }
@@ -173,6 +174,51 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 		mainView.settings.$enableTurnRestriction.subscribe(self) { [weak self] _ in
 			self?.editorLayer.clearCachedProperties()
+		}
+
+		wireGroupSelectionBar()
+	}
+
+	private func wireGroupSelectionBar() {
+		let bar = mainView.groupSelectionBar
+		bar.onTapMember = { [weak self] object in
+			self?.reanchorGroup(to: object)
+		}
+		bar.onRemoveMember = { [weak self] object in
+			guard let self else { return }
+			let oldAnchor = self.editorLayer.selectedPrimary
+			self.editorLayer.removeGroupMember(object)
+			if self.editorLayer.groupMembers.isEmpty {
+				self.unselectAll()
+			} else if self.editorLayer.selectedPrimary == nil {
+				self.removePin()
+				self.updateGroupSelectionBar()
+				self.refreshPushpinText()
+			} else {
+				self.updateGroupSelectionBar()
+				self.refreshPushpinText()
+				if self.editorLayer.selectedPrimary !== oldAnchor {
+					self.placePushpinForSelection(at: nil)
+				}
+			}
+		}
+		bar.onToggleAddMode = { [weak self] longPress in
+			guard let self else { return }
+			if longPress {
+				let feedback = UIImpactFeedbackGenerator(style: .light)
+				feedback.impactOccurred()
+				self.editorLayer.groupAddMode = self.editorLayer.groupAddMode == .batch ? .off : .batch
+			} else if self.editorLayer.groupAddMode == .armed {
+				self.editorLayer.groupAddMode = .off
+			} else if self.editorLayer.groupAddMode == .batch {
+				self.editorLayer.groupAddMode = .off
+			} else {
+				self.editorLayer.groupAddMode = .armed
+			}
+			self.updateGroupSelectionBar()
+		}
+		bar.onClose = { [weak self] in
+			self?.unselectAll()
 		}
 	}
 
@@ -426,6 +472,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			if editorLayer.selectedPrimary == nil {
 				// brand new node
 				editControlActions = [.EDITTAGS, .ADDNOTE, .PASTETAGS]
+			} else if editorLayer.isGroupSessionActive {
+				// Group delete is deferred — see multi-object-group-selection plan C7 open decision.
+				editControlActions = [.EDITTAGS]
 			} else {
 				if let relation = editorLayer.selectedPrimary?.isRelation() {
 					if relation.isRestriction() {
@@ -625,6 +674,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	// MARK: PushPin
 
 	func selectObject(_ object: OsmBaseObject?, pinAt point: CGPoint? = nil) {
+		if !editorLayer.groupMembers.isEmpty {
+			editorLayer.clearGroup()
+		}
 		editorLayer.selectedNode = object as? OsmNode
 		editorLayer.selectedWay = object as? OsmWay
 		editorLayer.selectedRelation = object as? OsmRelation
@@ -632,6 +684,8 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	}
 
 	func unselectAll() {
+		editorLayer.clearGroup()
+		hasShownGroupAddHint = false
 		editorLayer.selectedNode = nil
 		editorLayer.selectedWay = nil
 		editorLayer.selectedRelation = nil
@@ -704,16 +758,24 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 				self.endObjectRotation()
 			}
 			self.unblinkObject()
-			if let object {
+			if editorLayer.isGroupSessionActive {
+				self.editorLayer.groupDragFinish()
+			} else if let object {
 				self.editorLayer.dragFinish(object: object, isRotate: isRotate)
 			}
 		case .began:
-			self.editorLayer.dragBegin(from: pushPin.arrowPoint.minus(CGPoint(x: dx, y: dy)))
+			if editorLayer.isGroupSessionActive {
+				self.editorLayer.groupDragBegin(from: pushPin.arrowPoint.minus(CGPoint(x: dx, y: dy)))
+			} else {
+				self.editorLayer.dragBegin(from: pushPin.arrowPoint.minus(CGPoint(x: dx, y: dy)))
+			}
 			fallthrough // begin state can have movement
 		case .changed:
 			// define the drag function
 			func dragObjectToPushpin() {
-				if let object {
+				if editorLayer.isGroupSessionActive {
+					self.editorLayer.groupDragContinue(toPoint: pushPin.arrowPoint)
+				} else if let object {
 					self.editorLayer.dragContinue(object: object,
 					                              toPoint: pushPin.arrowPoint,
 					                              isRotateObjectMode: self.isRotateObjectMode)
@@ -798,6 +860,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		pushpinView.dragCallback = { [weak self, weak object] pushPin, state, dx, dy in
 			self?.onPushPinDrag(pushPin: pushPin, state: state, object: object, dx: dx, dy: dy)
 		}
+		pushpinView.longPressCallback = { [weak self] in
+			self?.pushpinLongPressed()
+		}
 
 		if object == nil {
 			// do animation if creating a new object
@@ -844,8 +909,45 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	}
 
 	func refreshPushpinText() {
-		let text = editorLayer.selectedPrimary?.friendlyDescription() ?? NSLocalizedString("(new object)", comment: "")
+		let text: String
+		if editorLayer.isGroupSessionActive {
+			let format = NSLocalizedString("Group (%d)", comment: "Pushpin label when multiple objects are selected as a group")
+			text = String.localizedStringWithFormat(format, editorLayer.groupMembers.count)
+		} else {
+			text = editorLayer.selectedPrimary?.friendlyDescription() ?? NSLocalizedString("(new object)", comment: "")
+		}
 		pushPin?.text = text
+	}
+
+	func pushpinLongPressed() {
+		guard editorLayer.selectedPrimary != nil,
+		      !editorLayer.isGroupSessionActive
+		else {
+			return
+		}
+		editorLayer.startGroup(with: editorLayer.selectedPrimary!)
+		editorLayer.groupAddMode = .armed
+		updateGroupSelectionBar()
+		refreshPushpinText()
+		MessageDisplay.shared.flashMessage(
+			title: nil,
+			message: NSLocalizedString("Tap objects to add them to the group",
+			                           comment: "Hint shown after long-press on pushpin to start group selection"))
+	}
+
+	func reanchorGroup(to object: OsmBaseObject) {
+		editorLayer.reanchorGroup(to: object)
+		placePushpinForSelection()
+		updateGroupSelectionBar()
+	}
+
+	func updateGroupSelectionBar() {
+		let bar = mainView.groupSelectionBar
+		let members = editorLayer.groupMembers
+		bar.isHidden = members.isEmpty
+		bar.update(members: members,
+		           anchor: editorLayer.selectedPrimary,
+		           addMode: editorLayer.groupAddMode)
 	}
 
 	var blinkObject: OsmBaseObject? // used for creating a moving dots animation during selection
@@ -1022,6 +1124,57 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			}
 
 			let point = tap.location(in: self)
+
+			if editorLayer.groupAddMode != .off {
+				if let hit = editorLayer.osmHitTestObject(at: point) {
+					if editorLayer.isGroupMember(hit) {
+						// Skip toggle-remove when it would empty a 1-member session
+						// (e.g. long-press just created the group).
+						if editorLayer.groupMembers.count > 1 {
+							// Toggle removal in add mode — better UX than add-only.
+							editorLayer.removeGroupMember(hit)
+							updateGroupSelectionBar()
+							refreshPushpinText()
+						}
+					} else {
+						editorLayer.addGroupMember(hit)
+						if editorLayer.groupAddMode == .armed {
+							editorLayer.groupAddMode = .off
+						}
+						updateGroupSelectionBar()
+						refreshPushpinText()
+					}
+				} else if editorLayer.groupAddMode == .armed {
+					editorLayer.groupAddMode = .off
+					updateGroupSelectionBar()
+					MessageDisplay.shared.flashMessage(
+						title: nil,
+						message: NSLocalizedString("Tap objects to add them to the group",
+						                           comment: "Hint when add mode is armed but the tap missed all objects"),
+						duration: 2.0)
+				}
+				// .batch stays active on empty tap — sticky until toggled off.
+				return
+			}
+
+			if editorLayer.isGroupSessionActive {
+				if let hit = editorLayer.osmHitTestObject(at: point) {
+					if editorLayer.isGroupMember(hit) {
+						reanchorGroup(to: hit)
+					} else if !hasShownGroupAddHint {
+						hasShownGroupAddHint = true
+						MessageDisplay.shared.flashMessage(
+							title: nil,
+							message: NSLocalizedString("Use + to add objects to the group",
+							                           comment: "Hint when tapping a non-member while a group is active"),
+							duration: 2.0)
+					}
+				} else {
+					unselectAll()
+				}
+				return
+			}
+
 			if mainView.plusButtonTimestamp != 0.0 {
 				// user is doing a long-press on + button
 				editorLayer.addNode(at: point)
@@ -1135,6 +1288,9 @@ extension MapView: UISheetPresentationControllerDelegate {
 extension MapView {
 	var mapData: OsmMapData { editorLayer?.mapData ?? OsmMapData() }
 	var selectedPrimary: OsmBaseObject? { editorLayer.selectedPrimary }
+	var isGroupActive: Bool { editorLayer.isGroupActive }
+	var isGroupSessionActive: Bool { editorLayer.isGroupSessionActive }
+	var groupMembers: [OsmBaseObject] { editorLayer.groupMembers }
 	var objectFilters: EditorFilters { editorLayer.objectFilters }
 	var selections: MapView.Selections { editorLayer.selections }
 	var shownObjects: ContiguousArray<OsmBaseObject> { editorLayer.shownObjects }
@@ -1145,6 +1301,10 @@ extension MapView {
 
 	func setTagsForCurrentObject(tags: [String: String]) {
 		editorLayer.setTagsForCurrentObject(tags)
+	}
+
+	func setTagsForGroup(editedValues: [String: String], userEditedKeys: Set<String>) {
+		editorLayer.setTagsForGroup(editedValues: editedValues, userEditedKeys: userEditedKeys)
 	}
 
 	func purgeCachedData(_ style: EditorMapLayer.MapDataPurgeStyle) {
@@ -1171,6 +1331,8 @@ extension MapView: EditorMapLayerOwner {
 
 	func selectionDidChange() {
 		updateEditControl()
+		refreshPushpinText()
+		updateGroupSelectionBar()
 		mainView.mapLayersView.mapMarkersView.didSelectObject(editorLayer.selectedPrimary)
 	}
 

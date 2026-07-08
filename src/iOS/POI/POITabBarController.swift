@@ -11,14 +11,31 @@ class POITabBarController: UITabBarController {
 	var keyValueDict = [String: String]()
 	var relationList: [OsmRelation] = []
 	var selection: OsmBaseObject?
+	var groupMembers: [OsmBaseObject] = []
+	var mixedKeys = Set<String>()
+	var userEditedKeys = Set<String>()
+
+	var isGroupEditing: Bool { groupMembers.count > 1 }
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
 
 		let appDelegate = AppDelegate.shared
-		let selection = appDelegate.mapView.selectedPrimary
+		let mapView = appDelegate.mapView
+		let selection = mapView.selectedPrimary
 		self.selection = selection
-		keyValueDict = selection?.tags ?? [:]
+
+		if mapView.isGroupActive {
+			groupMembers = mapView.groupMembers
+			let memberTagSets = groupMembers.map { $0.tags }
+			let merged = GroupTagMerge.merge(memberTags: memberTagSets)
+			keyValueDict = merged.shared
+			mixedKeys = merged.mixedKeys
+		} else {
+			keyValueDict = selection?.tags ?? [:]
+		}
+
+		// Relations tab shows the anchor object's parent relations only (v1).
 		relationList = selection?.parentRelations ?? []
 
 		var tabIndex = UserPrefs.shared.poiTabIndex.value ?? 0
@@ -58,6 +75,11 @@ class POITabBarController: UITabBarController {
 
 	func removeValueFromKeyValueDict(key: String) {
 		keyValueDict.removeValue(forKey: key)
+	}
+
+	func markKeyEdited(_ key: String) {
+		userEditedKeys.insert(key)
+		mixedKeys.remove(key)
 	}
 
 	override var keyCommands: [UIKeyCommand]? {
@@ -107,10 +129,28 @@ class POITabBarController: UITabBarController {
 	}
 
 	func commitChanges() {
-		AppDelegate.shared.mapView.setTagsForCurrentObject(tags: keyValueDict)
+		let mapView = AppDelegate.shared.mapView
+		if isGroupEditing {
+			mapView.setTagsForGroup(editedValues: keyValueDict, userEditedKeys: userEditedKeys)
+		} else {
+			mapView.setTagsForCurrentObject(tags: keyValueDict)
+		}
 	}
 
 	func isTagDictChanged(_ newDictionary: [String: String]) -> Bool {
+		if isGroupEditing {
+			for key in userEditedKeys {
+				let newValue = newDictionary[key]
+				for member in groupMembers {
+					let oldValue = member.tags[key]
+					if newValue != oldValue {
+						return true
+					}
+				}
+			}
+			return false
+		}
+
 		guard let tags = AppDelegate.shared.mapView.selectedPrimary?.tags
 		else {
 			// it's a brand new object

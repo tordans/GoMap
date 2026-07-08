@@ -75,6 +75,7 @@ class POIAllTagsViewController: UITableViewController, POIFeaturePickerDelegate,
 	private var tags: KeyValueTableSection!
 	private var relations: [OsmRelation] = []
 	private var members: [OsmMember] = []
+	private var mergedBaseline: [String: String] = [:]
 	@IBOutlet var saveButton: UIBarButtonItem!
 	private var currentFeature: PresetFeature?
 	var currentTextField: UITextField?
@@ -191,13 +192,35 @@ class POIAllTagsViewController: UITableViewController, POIFeaturePickerDelegate,
 		relations = tabController.relationList
 		members = (tabController.selection as? OsmRelation)?.members ?? []
 
-		tags.set(tabController.keyValueDict.map { ($0.key, $0.value) })
+		mergedBaseline = tabController.keyValueDict
+		var pairs = tabController.keyValueDict.map { ($0.key, $0.value) }
+		if tabController.isGroupEditing {
+			for key in tabController.mixedKeys.sorted() where tabController.keyValueDict[key] == nil {
+				pairs.append((key, ""))
+			}
+		}
+		tags.set(pairs)
 
 		_ = updateWithRecomendations(forFeature: true)
 	}
 
+	func markEditedKeysDiffingFromBaseline() {
+		guard let tabController = tabBarController as? POITabBarController,
+		      tabController.isGroupEditing
+		else {
+			return
+		}
+
+		let newDict = tags.keyValueDictionary()
+		let allKeys = Set(mergedBaseline.keys).union(newDict.keys).union(tabController.mixedKeys)
+		for key in allKeys where mergedBaseline[key] != newDict[key] {
+			tabController.markKeyEdited(key)
+		}
+	}
+
 	func saveState() {
 		let tabController = tabBarController as? POITabBarController
+		markEditedKeysDiffingFromBaseline()
 		tabController?.keyValueDict = tags.keyValueDictionary()
 	}
 
@@ -246,9 +269,17 @@ class POIAllTagsViewController: UITableViewController, POIFeaturePickerDelegate,
 		let tabController = tabBarController as! POITabBarController
 		let geometry = tabController.selection?.geometry() ?? GEOMETRY.POINT
 		let location = AppDelegate.shared.mainView.currentRegion
+		let oldDict = tabController.keyValueDict
 		tabController.keyValueDict = newFeature.objectTagsUpdatedForFeature(tabController.keyValueDict,
 		                                                                    geometry: geometry,
 		                                                                    location: location)
+		if tabController.isGroupEditing {
+			let newDict = tabController.keyValueDict
+			let allKeys = Set(oldDict.keys).union(newDict.keys)
+			for key in allKeys where oldDict[key] != newDict[key] {
+				tabController.markKeyEdited(key)
+			}
+		}
 		_ = updateWithRecomendations(forFeature: true)
 	}
 
@@ -390,6 +421,9 @@ class POIAllTagsViewController: UITableViewController, POIFeaturePickerDelegate,
 		kvCell.isSet.backgroundColor = kv.k == "" || kv.v == "" ? nil : UIColor.systemBlue
 
 		let tabController = tabBarController as! POITabBarController
+		if tabController.isGroupEditing {
+			markEditedKeysDiffingFromBaseline()
+		}
 		saveButton.isEnabled = tabController.isTagDictChanged(tags.keyValueDictionary())
 		if #available(iOS 13.0, *) {
 			tabBarController?.isModalInPresentation = saveButton.isEnabled
@@ -516,6 +550,9 @@ class POIAllTagsViewController: UITableViewController, POIFeaturePickerDelegate,
 			if indexPath.section == 0 {
 				let kv = tags[indexPath.row]
 				tabController.removeValueFromKeyValueDict(key: kv.k)
+				if tabController.isGroupEditing, kv.k != "" {
+					tabController.markKeyEdited(kv.k)
+				}
 				tags.remove(at: indexPath)
 			} else if indexPath.section == 1 {
 				relations.remove(at: indexPath.row)

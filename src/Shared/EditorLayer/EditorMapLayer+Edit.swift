@@ -135,9 +135,76 @@ extension EditorMapLayer {
 		owner.didUpdateObject()
 	}
 
+	/// Applies tag edits to every group member; only keys in `userEditedKeys` are changed (C2).
+	func setTagsForGroup(editedValues: [String: String], userEditedKeys: Set<String>) {
+		guard isGroupActive else { return }
+
+		mapData.beginUndoGrouping()
+		for member in groupMembers {
+			let newTags = GroupTagMerge.commit(
+				memberTags: member.tags,
+				editedValues: editedValues,
+				userEditedKeys: userEditedKeys)
+			mapData.setTags(newTags, for: member)
+		}
+		mapData.endUndoGrouping()
+		owner.didUpdateObject()
+		setNeedsLayout()
+	}
+
 	// MARK: Selection
 
+	func osmHitTestObject(at point: CGPoint) -> OsmBaseObject? {
+		if selectedWay != nil,
+		   let hit = osmHitTestNode(inSelectedWay: point, radius: Self.DefaultHitTestRadius)
+		{
+			return hit
+		}
+
+		var segment = -1
+		guard let hit = osmHitTest(
+			point,
+			radius: Self.DefaultHitTestRadius,
+			isDragConnect: false,
+			ignoreList: [],
+			segment: &segment)
+		else {
+			return nil
+		}
+
+		if let hit = hit as? OsmNode {
+			return hit
+		}
+		if let hit = hit as? OsmWay {
+			if let selectedRelation = selectedRelation,
+			   hit.parentRelations.contains(selectedRelation)
+			{
+				return hit
+			}
+			if hit.parentRelations.count > 0 {
+				var relations = hit.parentRelations.filter { relation in
+					relation.isMultipolygon() || relation.isBoundary() || relation.isWaterway()
+				}
+				if relations.count == 0, !hit.hasInterestingTags() {
+					relations = hit.parentRelations
+				}
+				if let relation = relations.first {
+					return relation
+				}
+				return hit
+			}
+			return hit
+		}
+		if let hit = hit as? OsmRelation {
+			return hit
+		}
+		fatalError()
+	}
+
 	func selectObjectAtPoint(_ point: CGPoint) {
+		if !groupMembers.isEmpty {
+			clearGroup()
+		}
 		owner.unblinkObject() // used by Mac Catalyst, harmless otherwise
 
 		if selectedWay != nil,
@@ -146,62 +213,33 @@ extension EditorMapLayer {
 		{
 			selectedNode = hit
 
-		} else {
-			// hit test anything
-			var segment = -1
-			if let hit = osmHitTest(
-				point,
-				radius: Self.DefaultHitTestRadius,
-				isDragConnect: false,
-				ignoreList: [],
-				segment: &segment)
-			{
-				if let hit = hit as? OsmNode {
-					selectedNode = hit
-					selectedWay = nil
-					selectedRelation = nil
-				} else if let hit = hit as? OsmWay {
-					if let selectedRelation = selectedRelation,
-					   hit.parentRelations.contains(selectedRelation)
-					{
-						// selecting way inside previously selected relation
-						selectedNode = nil
-						selectedWay = hit
-					} else if hit.parentRelations.count > 0 {
-						// select relation the way belongs to
-						var relations = hit.parentRelations.filter { relation in
-							relation.isMultipolygon() || relation.isBoundary() || relation.isWaterway()
-						}
-						if relations.count == 0, !hit.hasInterestingTags() {
-							// if the way doesn't have tags then always promote to containing relation
-							relations = hit.parentRelations
-						}
-						if let relation = relations.first {
-							selectedNode = nil
-							selectedWay = nil
-							selectedRelation = relation
-						} else {
-							selectedNode = nil
-							selectedWay = hit
-							selectedRelation = nil
-						}
-					} else {
-						selectedNode = nil
-						selectedWay = hit
-						selectedRelation = nil
-					}
-				} else if let hit = hit as? OsmRelation {
-					selectedNode = nil
-					selectedWay = nil
-					selectedRelation = hit
-				} else {
-					fatalError()
-				}
-			} else {
-				selectedNode = nil
+		} else if let hit = osmHitTestObject(at: point) {
+			if let hit = hit as? OsmNode {
+				selectedNode = hit
 				selectedWay = nil
 				selectedRelation = nil
+			} else if let hit = hit as? OsmWay {
+				if let selectedRelation = selectedRelation,
+				   hit.parentRelations.contains(selectedRelation)
+				{
+					selectedNode = nil
+					selectedWay = hit
+				} else {
+					selectedNode = nil
+					selectedWay = hit
+					selectedRelation = nil
+				}
+			} else if let hit = hit as? OsmRelation {
+				selectedNode = nil
+				selectedWay = nil
+				selectedRelation = hit
+			} else {
+				fatalError()
 			}
+		} else {
+			selectedNode = nil
+			selectedWay = nil
+			selectedRelation = nil
 		}
 
 		owner.removePin()
@@ -289,6 +327,43 @@ extension EditorMapLayer {
 				owner.unblinkObject()
 			}
 		}
+	}
+
+	// MARK: Group dragging pushPin
+
+	func groupDragBegin(from: CGPoint) {
+		dragBegin(from: from)
+	}
+
+	func groupDragContinue(toPoint: CGPoint) {
+		if dragState.didMove {
+			mapData.endUndoGrouping()
+			silentUndo = true
+			let dict = mapData.undo()
+			silentUndo = false
+			mapData.beginUndoGrouping()
+			if let dict = dict as? [String: String] {
+				mapData.registerUndoCommentContext(dict)
+			}
+		}
+		dragState.didMove = true
+
+		let p1 = viewPort.mapTransform.screenPoint(forLatLon: dragState.startPoint, birdsEye: true)
+		let totalMovement = toPoint.minus(p1)
+		let delta = CGPoint(x: totalMovement.x,
+		                    y: -totalMovement.y)
+
+		var nodes = Set<OsmNode>()
+		for member in groupMembers {
+			nodes.formUnion(member.nodeSet())
+		}
+		for node in nodes {
+			adjust(node, byScreenDistance: delta)
+		}
+	}
+
+	func groupDragFinish() {
+		mapData.endUndoGrouping()
 	}
 
 	func dragFinish(object: OsmBaseObject, isRotate: Bool) {
@@ -549,9 +624,13 @@ extension EditorMapLayer {
 
 		let deleteHandler: ((_ action: UIAlertAction?) -> Void) = { [self] _ in
 			do {
+				let deletedObject = selectedPrimary
 				let canDelete = try self.canDeleteSelectedObject()
 				let deletedNode: Int? = selectedNode == nil ? nil : selectedWay?.nodes.firstIndex(of: selectedNode!)
 				canDelete()
+				if let deletedObject {
+					self.removeGroupMember(deletedObject)
+				}
 				var pos = pushpinView.arrowPoint
 				owner.removePin()
 				// update location of pushpin

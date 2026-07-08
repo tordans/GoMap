@@ -205,8 +205,8 @@ design. Constraints (no precedent exists, so be careful):
 - A trailing **"+"** control implementing the `GroupAddMode` flow (C5) with a clear
   pressed/armed visual state and a distinct batch-mode state.
 - A clear **close/dismiss** control (C3 exit).
-- New file: `GroupSelectionBar.swift`, added programmatically (mirroring how
-  `mapLayersView` and the magnifying glass are added in `MapView.awakeFromNib`).
+- New file: `GroupSelectionBar.swift`, added programmatically in `MainViewController.viewDidLoad`
+  (mirroring how `mapLayersView` is set up).
 
 Lower-surface alternative to evaluate during implementation: reuse/extend the existing
 bottom `editToolbar` area instead of a brand-new top bar. This is more consistent with
@@ -228,7 +228,7 @@ trade-off to the product owner before building the top bar if cost becomes a con
 | 1 | Additive `groupMembers` model (C1); highlight all members (C8); read-only `GroupSelectionBar` showing chips | Keep single-selection paths byte-for-byte unchanged |
 | 2 | Long-press pushpin → create group (C4); group pushpin "Group" label; dedicated group move path (C6) | Gesture coexistence on `PushPinView`; undo grouping |
 | 3 | `GroupAddMode` add / batch-add on the bar's "+" (C5); tap routing in `handleTapGesture`; plain-tap rules (C3) | Tap routing collisions; accidental group loss |
-| 4 | Multi-object tag merge + `mixedKeys` + diff-commit (C2); "Multiple values" placeholder + value list sheet; **unit tests** | **Highest** — data correctness |
+| 4 | Multi-object tag merge + `mixedKeys` + diff-commit (C2); "Multiple values" placeholder + value list sheet; **unit tests** | **Highest** — data correctness | **Done** |
 | 5 | Edit-toolbar gating (C7); edge cases; xliff strings | Action sets, relations in group |
 
 ## Key files
@@ -248,10 +248,24 @@ trade-off to the product owner before building the top bar if cost becomes a con
 - "Multiple values" (mixed-field placeholder)
 - Any group-bar accessibility labels (add member, batch add, dismiss group)
 
+## Implementation notes (Phases 1–5)
+
+Decisions made during implementation:
+
+- **Add-mode tap toggles members** — tapping an object already in the group while `groupAddMode` is active removes it (not add-only), for quicker correction.
+- **Pushpin label** — localized `Group (%d)` with member count when `isGroupSessionActive` (`groupMembers` non-empty, including the one-member armed session).
+- **One-member group session** — `isGroupSessionActive` (`!groupMembers.isEmpty`) gates toolbar (`[.EDITTAGS]` only), group drag, and pushpin label; `isGroupActive` (count > 1) remains for multi-select map taps, POI group editing, and tag commit. Long-press pushpin seeds a one-member session with `.armed` add mode; POI editing still uses the single-object path until a second member is added.
+- **Mixed-field blur protection** — focusing then blurring a mixed preset field without entering text does not call `markKeyEdited` or write `""` into `keyValueDict`; only a non-empty value or explicit picker choice unifies the key.
+- **Empty-space dismiss** — tapping empty map while a group is active clears the group and selection (`unselectAll()`); documented in the bar close button accessibility hint.
+- **Edit toolbar** — group-active branch offers `[.EDITTAGS]` only; `.DELETE` deferred per C7 open decision (comment in `updateEditControl()`).
+- **Bar placement** — `GroupSelectionBar` pinned below the top button cluster (`safeArea.top + 76`), centered, height 44pt, owned by `MainViewController`, updated from `MapView.selectionDidChange()`.
+- **Long-press pushpin** — seeds group with one member, shows bar, sets `.armed` so the next tap can add a second member immediately.
+- **Phase 4 (tag merge/commit)** — `GroupTagMerge` pure helpers; POI tab loads merged shared tags + `mixedKeys`; commit diffs via `userEditedKeys` only. Relations tab remains anchor-only (`parentRelations` of `selectedPrimary`). Feature-type changes diff old vs new dict and mark every changed key as edited. Mixed preset fields show localized "Multiple values" placeholder (never stored in `keyValueDict`); preset value picker adds a "Current values" section listing per-member values when the key is mixed.
+
 ## Remaining product decisions (non-blocking, pick before Phase 4/5)
 
 - Maximum group size / performance ceiling with many ways (union node-set drag cost).
-- Whether `DELETE` is offered for a whole group in the edit toolbar (C7).
+- Whether `DELETE` is offered for a whole group in the edit toolbar (C7) — **v1: EDITTAGS only**.
 - Relations in a group: include the relation as a whole, or only its member ways/nodes?
 - Whether a tap on empty space dismisses the group, or only the explicit close control
-  does (C3) — pick one and document it in the bar's accessibility hint.
+  does (C3) — **implemented: empty-space tap dismisses** (see bar accessibility hint).
