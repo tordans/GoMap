@@ -310,6 +310,7 @@ final class EditorMapLayer: CALayer {
 			self.selectedRelation = context["selectedRelation"] as? OsmRelation
 			self.selectedWay = context["selectedWay"] as? OsmWay
 			self.selectedNode = context["selectedNode"] as? OsmNode
+			self.clearGroup()
 			if self.selectedNode?.deleted ?? false {
 				self.selectedNode = nil
 			}
@@ -1811,7 +1812,11 @@ final class EditorMapLayer: CALayer {
 		}
 	}
 
+	/// True multi-select (2+ members); tag merge/commit and group POI editing use this.
 	var isGroupActive: Bool { groupMembers.count > 1 }
+
+	/// Any group session, including the armed one-member state after long-press pushpin.
+	var isGroupSessionActive: Bool { !groupMembers.isEmpty }
 
 	var groupAddMode: GroupAddMode = .off {
 		didSet {

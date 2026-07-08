@@ -186,12 +186,20 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		}
 		bar.onRemoveMember = { [weak self] object in
 			guard let self else { return }
+			let oldAnchor = self.editorLayer.selectedPrimary
 			self.editorLayer.removeGroupMember(object)
 			if self.editorLayer.groupMembers.isEmpty {
 				self.unselectAll()
+			} else if self.editorLayer.selectedPrimary == nil {
+				self.removePin()
+				self.updateGroupSelectionBar()
+				self.refreshPushpinText()
 			} else {
 				self.updateGroupSelectionBar()
 				self.refreshPushpinText()
+				if self.editorLayer.selectedPrimary !== oldAnchor {
+					self.placePushpinForSelection(at: nil)
+				}
 			}
 		}
 		bar.onToggleAddMode = { [weak self] longPress in
@@ -464,7 +472,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 			if editorLayer.selectedPrimary == nil {
 				// brand new node
 				editControlActions = [.EDITTAGS, .ADDNOTE, .PASTETAGS]
-			} else if editorLayer.isGroupActive {
+			} else if editorLayer.isGroupSessionActive {
 				// Group delete is deferred — see multi-object-group-selection plan C7 open decision.
 				editControlActions = [.EDITTAGS]
 			} else {
@@ -666,6 +674,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	// MARK: PushPin
 
 	func selectObject(_ object: OsmBaseObject?, pinAt point: CGPoint? = nil) {
+		if !editorLayer.groupMembers.isEmpty {
+			editorLayer.clearGroup()
+		}
 		editorLayer.selectedNode = object as? OsmNode
 		editorLayer.selectedWay = object as? OsmWay
 		editorLayer.selectedRelation = object as? OsmRelation
@@ -747,13 +758,13 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 				self.endObjectRotation()
 			}
 			self.unblinkObject()
-			if editorLayer.isGroupActive {
+			if editorLayer.isGroupSessionActive {
 				self.editorLayer.groupDragFinish()
 			} else if let object {
 				self.editorLayer.dragFinish(object: object, isRotate: isRotate)
 			}
 		case .began:
-			if editorLayer.isGroupActive {
+			if editorLayer.isGroupSessionActive {
 				self.editorLayer.groupDragBegin(from: pushPin.arrowPoint.minus(CGPoint(x: dx, y: dy)))
 			} else {
 				self.editorLayer.dragBegin(from: pushPin.arrowPoint.minus(CGPoint(x: dx, y: dy)))
@@ -762,7 +773,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		case .changed:
 			// define the drag function
 			func dragObjectToPushpin() {
-				if editorLayer.isGroupActive {
+				if editorLayer.isGroupSessionActive {
 					self.editorLayer.groupDragContinue(toPoint: pushPin.arrowPoint)
 				} else if let object {
 					self.editorLayer.dragContinue(object: object,
@@ -899,7 +910,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 	func refreshPushpinText() {
 		let text: String
-		if editorLayer.isGroupActive {
+		if editorLayer.isGroupSessionActive {
 			let format = NSLocalizedString("Group (%d)", comment: "Pushpin label when multiple objects are selected as a group")
 			text = String.localizedStringWithFormat(format, editorLayer.groupMembers.count)
 		} else {
@@ -910,7 +921,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 
 	func pushpinLongPressed() {
 		guard editorLayer.selectedPrimary != nil,
-		      !editorLayer.isGroupActive
+		      !editorLayer.isGroupSessionActive
 		else {
 			return
 		}
@@ -1133,7 +1144,16 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 						updateGroupSelectionBar()
 						refreshPushpinText()
 					}
+				} else if editorLayer.groupAddMode == .armed {
+					editorLayer.groupAddMode = .off
+					updateGroupSelectionBar()
+					MessageDisplay.shared.flashMessage(
+						title: nil,
+						message: NSLocalizedString("Tap objects to add them to the group",
+						                           comment: "Hint when add mode is armed but the tap missed all objects"),
+						duration: 2.0)
 				}
+				// .batch stays active on empty tap — sticky until toggled off.
 				return
 			}
 
@@ -1269,6 +1289,7 @@ extension MapView {
 	var mapData: OsmMapData { editorLayer?.mapData ?? OsmMapData() }
 	var selectedPrimary: OsmBaseObject? { editorLayer.selectedPrimary }
 	var isGroupActive: Bool { editorLayer.isGroupActive }
+	var isGroupSessionActive: Bool { editorLayer.isGroupSessionActive }
 	var groupMembers: [OsmBaseObject] { editorLayer.groupMembers }
 	var objectFilters: EditorFilters { editorLayer.objectFilters }
 	var selections: MapView.Selections { editorLayer.selections }

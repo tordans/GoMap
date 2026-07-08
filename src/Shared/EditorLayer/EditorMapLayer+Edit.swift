@@ -237,10 +237,9 @@ extension EditorMapLayer {
 				fatalError()
 			}
 		} else {
-				selectedNode = nil
-				selectedWay = nil
-				selectedRelation = nil
-			}
+			selectedNode = nil
+			selectedWay = nil
+			selectedRelation = nil
 		}
 
 		owner.removePin()

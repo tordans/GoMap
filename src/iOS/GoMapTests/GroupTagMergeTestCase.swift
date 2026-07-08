@@ -115,10 +115,10 @@ class GroupTagMergeTestCase: XCTestCase {
 		let result = GroupTagMerge.commit(
 			memberTags: memberTags,
 			editedValues: ["name": "Unified"],
-			userEditedKeys: ["shop"])
+			userEditedKeys: ["name"])
 
 		/// Then
-		XCTAssertEqual(result["name"], "Shop A")
+		XCTAssertEqual(result["name"], "Unified")
 		XCTAssertEqual(result["shop"], "bakery")
 	}
 

@@ -159,6 +159,15 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 		updateTagDictLow(withValue: value, forKey: key)
 	}
 
+	/// Mixed group fields keep `keyValueDict[key] == nil` until the user enters a non-empty value or picks from the sheet.
+	private func shouldPreserveMixedKey(_ key: String, value: String) -> Bool {
+		guard let tabController = tabBarController as? POITabBarController else { return false }
+		return tabController.isGroupEditing
+			&& tabController.mixedKeys.contains(key)
+			&& tabController.keyValueDict[key] == nil
+			&& value.isEmpty
+	}
+
 	func updatePresets() {
 		let tabController = tabBarController as! POITabBarController
 
@@ -756,6 +765,9 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 		// convert to raw value if necessary
 		let tagValue = presetKey.tagValueForPrettyName(textField.text ?? "")
 		firstResponderTextField = nil
+		if shouldPreserveMixedKey(presetKey.tagKey, value: tagValue) {
+			return
+		}
 		updateTagDict(withValue: tagValue, forKey: presetKey.tagKey)
 	}
 
@@ -804,6 +816,10 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 		let value = textView.text?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
 		textView.text = value
 		textViewDidChange(textView)
+		if shouldPreserveMixedKey(cell.presetKey.tagKey, value: value) {
+			cell.addPlaceholderText()
+			return
+		}
 		updateTagDict(withValue: value, forKey: cell.presetKey.tagKey)
 
 		// fake placeholder text
@@ -836,6 +852,9 @@ class POICommonTagsViewController: UITableViewController, UITextFieldDelegate, U
 		let value = cell.valueField.text ?? ""
 
 		if case let .key(presetKey) = cell.presetKey {
+			if shouldPreserveMixedKey(presetKey.tagKey, value: value) {
+				return
+			}
 			// For PresetValueTextField cells this should always be true
 			updateTagDict(withValue: value, forKey: presetKey.tagKey)
 		}

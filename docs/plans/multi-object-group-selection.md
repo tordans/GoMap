@@ -253,7 +253,9 @@ trade-off to the product owner before building the top bar if cost becomes a con
 Decisions made during implementation:
 
 - **Add-mode tap toggles members** — tapping an object already in the group while `groupAddMode` is active removes it (not add-only), for quicker correction.
-- **Pushpin label** — localized `Group (%d)` with member count when `isGroupActive` (count > 1).
+- **Pushpin label** — localized `Group (%d)` with member count when `isGroupSessionActive` (`groupMembers` non-empty, including the one-member armed session).
+- **One-member group session** — `isGroupSessionActive` (`!groupMembers.isEmpty`) gates toolbar (`[.EDITTAGS]` only), group drag, and pushpin label; `isGroupActive` (count > 1) remains for multi-select map taps, POI group editing, and tag commit. Long-press pushpin seeds a one-member session with `.armed` add mode; POI editing still uses the single-object path until a second member is added.
+- **Mixed-field blur protection** — focusing then blurring a mixed preset field without entering text does not call `markKeyEdited` or write `""` into `keyValueDict`; only a non-empty value or explicit picker choice unifies the key.
 - **Empty-space dismiss** — tapping empty map while a group is active clears the group and selection (`unselectAll()`); documented in the bar close button accessibility hint.
 - **Edit toolbar** — group-active branch offers `[.EDITTAGS]` only; `.DELETE` deferred per C7 open decision (comment in `updateEditControl()`).
 - **Bar placement** — `GroupSelectionBar` pinned below the top button cluster (`safeArea.top + 76`), centered, height 44pt, owned by `MainViewController`, updated from `MapView.selectionDidChange()`.
