@@ -198,10 +198,12 @@ class CustomActionSheetController: UIViewController {
 			button.layer.cornerRadius = cornerRadius
 			button.clipsToBounds = true
 
-			slideToSelectItems.append(SlideToSelectOverlay.Item(view: button) { [weak self] in
+			let selectAction = { [weak self] in
 				self?.dismiss(animated: true)
 				action.handler?()
-			})
+			}
+			button.onTap = { _ in selectAction() }
+			slideToSelectItems.append(SlideToSelectOverlay.Item(view: button, handler: selectAction))
 
 			buttonsStack.addArrangedSubview(button)
 
@@ -238,10 +240,12 @@ class CustomActionSheetController: UIViewController {
 			cancelButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .callout).bold()
 #endif
 
-			slideToSelectItems.append(SlideToSelectOverlay.Item(view: cancelButton) { [weak self] in
+			let selectCancel = { [weak self] in
 				self?.dismiss(animated: true)
 				cancel.handler?()
-			})
+			}
+			cancelButton.onTap = { _ in selectCancel() }
+			slideToSelectItems.append(SlideToSelectOverlay.Item(view: cancelButton, handler: selectCancel))
 
 			alertStack.addArrangedSubview(cancelButton)
 
@@ -290,9 +294,15 @@ private final class SlideToSelectOverlay: UIView {
 		self.items = items
 		super.init(frame: .zero)
 		backgroundColor = .clear
+		isAccessibilityElement = false
 		for item in items {
+			// Touch handling is centralized here; VoiceOver and keyboard still activate rows via onTap.
 			item.view.isUserInteractionEnabled = false
 		}
+	}
+
+	override var accessibilityElements: [Any]? {
+		items.map(\.view)
 	}
 
 	@available(*, unavailable)
