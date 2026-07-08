@@ -178,6 +178,19 @@ final class EditorMapLayer: CALayer {
 
 	var dragState = DragState(startPoint: .zero, didMove: false, confirmDrag: false)
 
+	/// Active while rotating a node's `direction` / `camera:direction` tag (not geometry).
+	var directionRotateTagKey: String?
+	var directionRotateInitialBearing: Int?
+	var directionRotateUndoOpen = false
+
+	var isRotateDirectionMode: Bool { directionRotateTagKey != nil }
+
+	func canRotateSelectedNodeDirection() -> Bool {
+		selectedWay == nil &&
+			selectedRelation == nil &&
+			selectedNode?.rotatableDirectionTagKey != nil
+	}
+
 	let objectFilters = EditorFilters()
 
 	var whiteText = false {
@@ -1204,6 +1217,13 @@ final class EditorMapLayer: CALayer {
 	func directionShapeLayers(with node: OsmNode) -> [CALayer & LayerPropertiesProviding] {
 		if let direction = node.direction {
 			return [directionShapeLayer(for: node, withDirection: direction)]
+		}
+
+		if node === selectedNode,
+		   directionRotateTagKey != nil,
+		   let bearing = directionRotateInitialBearing
+		{
+			return [directionShapeLayer(for: node, withDirection: NSRange(location: bearing, length: 0))]
 		}
 
 		guard let highway = node.tags["highway"] else { return [] }
