@@ -111,6 +111,18 @@ class MapLayersView: UIView {
 		}
 	}
 
+	private var trafficSignOverlayRefreshWorkItem: DispatchWorkItem?
+
+	private func scheduleTrafficSignOverlayRefresh() {
+		trafficSignOverlayRefreshWorkItem?.cancel()
+		let work = DispatchWorkItem { [weak self] in
+			guard let self, self.displayTrafficSignOverlay else { return }
+			self.trafficSignOverlayLayer.refresh()
+		}
+		trafficSignOverlayRefreshWorkItem = work
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+	}
+
 	func initDefaultChildViews(andAlso more: [LayerOrView]) {
 		for layer in more {
 			allLayers.append(layer)
@@ -192,7 +204,7 @@ class MapLayersView: UIView {
 
 		viewPort.mapTransform.onChange.subscribe(self) { [weak self] _ in
 			guard let self, self.displayTrafficSignOverlay else { return }
-			self.trafficSignOverlayLayer.refresh()
+			self.scheduleTrafficSignOverlayRefresh()
 		}
 
 		mainView.settings.$displayTrafficSigns.subscribe(self) { [weak self] enabled in
@@ -201,7 +213,7 @@ class MapLayersView: UIView {
 
 		mainView.mapView.mapData.addChangeCallback { [weak self] in
 			guard let self, self.displayTrafficSignOverlay else { return }
-			self.trafficSignOverlayLayer.refresh()
+			self.scheduleTrafficSignOverlayRefresh()
 		}
 
 		mainView.settings.$displayGpxTracks.callAndSubscribe(self) { [weak self] displayGpxTracks in

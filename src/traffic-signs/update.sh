@@ -8,7 +8,11 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-npm install --no-fund --no-audit
+if [ -f package-lock.json ]; then
+  npm ci --no-fund --no-audit
+else
+  npm install --no-fund --no-audit
+fi
 node build_index.mjs
 
 git add TrafficSignIndex.json TrafficSigns.xcassets package.json package-lock.json build_index.mjs update.sh 2>/dev/null || true

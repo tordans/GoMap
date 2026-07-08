@@ -20,8 +20,10 @@ final class TrafficSignPickerViewController: UIViewController,
 
 	private let selectedScroll = UIScrollView()
 	private let selectedStack = UIStackView()
+	private let composedValueLabel = UILabel()
 	private let collectionView: UICollectionView
 	private let searchController = UISearchController(searchResultsController: nil)
+	private let emptyResultsLabel = UILabel()
 
 	private let cellId = "SignCell"
 
@@ -69,13 +71,24 @@ final class TrafficSignPickerViewController: UIViewController,
 		selectedStack.translatesAutoresizingMaskIntoConstraints = false
 		selectedScroll.addSubview(selectedStack)
 
+		composedValueLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+		composedValueLabel.textColor = .secondaryLabel
+		composedValueLabel.numberOfLines = 0
+		composedValueLabel.translatesAutoresizingMaskIntoConstraints = false
+
 		collectionView.translatesAutoresizingMaskIntoConstraints = false
 		collectionView.backgroundColor = .systemBackground
 		collectionView.dataSource = self
 		collectionView.delegate = self
 		collectionView.register(TrafficSignPickerCell.self, forCellWithReuseIdentifier: cellId)
 
+		emptyResultsLabel.font = .systemFont(ofSize: 15)
+		emptyResultsLabel.textColor = .secondaryLabel
+		emptyResultsLabel.textAlignment = .center
+		emptyResultsLabel.numberOfLines = 0
+
 		view.addSubview(selectedScroll)
+		view.addSubview(composedValueLabel)
 		view.addSubview(collectionView)
 
 		NSLayoutConstraint.activate([
@@ -88,7 +101,10 @@ final class TrafficSignPickerViewController: UIViewController,
 			selectedStack.trailingAnchor.constraint(equalTo: selectedScroll.trailingAnchor),
 			selectedStack.bottomAnchor.constraint(equalTo: selectedScroll.bottomAnchor),
 			selectedStack.heightAnchor.constraint(equalTo: selectedScroll.heightAnchor),
-			collectionView.topAnchor.constraint(equalTo: selectedScroll.bottomAnchor, constant: 8),
+			composedValueLabel.topAnchor.constraint(equalTo: selectedScroll.bottomAnchor, constant: 4),
+			composedValueLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+			composedValueLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+			collectionView.topAnchor.constraint(equalTo: composedValueLabel.bottomAnchor, constant: 8),
 			collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
 			collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 			collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -110,11 +126,25 @@ final class TrafficSignPickerViewController: UIViewController,
 	func updateSearchResults(for searchController: UISearchController) {
 		let query = searchController.searchBar.text ?? ""
 		searchResults = catalog.search(query: query, countryCode: countryCode)
+		updateEmptyResultsState(query: query)
 		collectionView.reloadData()
 	}
 
 	private func updateSearchResults() {
 		searchResults = catalog.search(query: "", countryCode: countryCode)
+		updateEmptyResultsState(query: "")
+	}
+
+	private func updateEmptyResultsState(query: String) {
+		let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+		if searchResults.isEmpty, !trimmed.isEmpty {
+			emptyResultsLabel.text = String(
+				format: NSLocalizedString("No signs match '%@'", comment: "Empty traffic sign search results"),
+				trimmed)
+			collectionView.backgroundView = emptyResultsLabel
+		} else {
+			collectionView.backgroundView = nil
+		}
 	}
 
 	private func rebuildSelectedRow() {
@@ -122,6 +152,17 @@ final class TrafficSignPickerViewController: UIViewController,
 		for (index, item) in selection.enumerated() {
 			let chip = makeChip(for: item, index: index)
 			selectedStack.addArrangedSubview(chip)
+		}
+		updateComposedValuePreview()
+	}
+
+	private func updateComposedValuePreview() {
+		if selection.isEmpty {
+			composedValueLabel.text = nil
+			composedValueLabel.isHidden = true
+		} else {
+			composedValueLabel.text = catalog.compose(selection: selection, countryCode: countryCode)
+			composedValueLabel.isHidden = false
 		}
 	}
 
@@ -134,26 +175,36 @@ final class TrafficSignPickerViewController: UIViewController,
 		imageView.contentMode = .scaleAspectFit
 		imageView.translatesAutoresizingMaskIntoConstraints = false
 		NSLayoutConstraint.activate([
-			imageView.widthAnchor.constraint(equalToConstant: 36),
-			imageView.heightAnchor.constraint(equalToConstant: 36),
+			imageView.widthAnchor.constraint(equalToConstant: 28),
+			imageView.heightAnchor.constraint(equalToConstant: 28),
 		])
+
+		let removeLabel = UILabel()
+		removeLabel.text = "×"
+		removeLabel.font = .systemFont(ofSize: 14, weight: .bold)
+		removeLabel.textColor = .secondaryLabel
+		removeLabel.translatesAutoresizingMaskIntoConstraints = false
 
 		switch item {
 		case let .catalog(entry):
 			imageView.image = catalog.image(for: entry) ?? UIImage(systemName: "signpost.right")
 			button.accessibilityLabel = entry.descriptiveName
-		case let .other(_, label):
+		case let .other(_, label, _):
 			imageView.image = UIImage(systemName: "questionmark.circle")
 			button.accessibilityLabel = String(
 				format: NSLocalizedString("Other: %@", comment: "Unrecognized traffic sign fragment"),
 				label)
 		}
+		button.accessibilityHint = NSLocalizedString("Double-tap to remove", comment: "Remove selected traffic sign chip")
 
 		button.addSubview(imageView)
+		button.addSubview(removeLabel)
 		NSLayoutConstraint.activate([
-			imageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+			imageView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
 			imageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-			button.widthAnchor.constraint(equalToConstant: 44),
+			removeLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 2),
+			removeLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
+			removeLabel.centerYAnchor.constraint(equalTo: button.centerYAnchor),
 			button.heightAnchor.constraint(equalToConstant: 44),
 		])
 		return button
@@ -173,6 +224,20 @@ final class TrafficSignPickerViewController: UIViewController,
 		})
 	}
 
+	private func isMainSign(_ entry: TrafficSignEntry) -> Bool {
+		if entry.isNamedValue == true { return true }
+		return entry.kind == "traffic_sign"
+	}
+
+	private func isModifierSelection(_ item: TrafficSignSelectionItem) -> Bool {
+		switch item {
+		case let .catalog(entry):
+			return !isMainSign(entry)
+		case .other:
+			return true
+		}
+	}
+
 	private func toggle(_ entry: TrafficSignEntry) {
 		if let idx = selection.firstIndex(where: {
 			if case let .catalog(e) = $0 { return e.osmValuePart == entry.osmValuePart }
@@ -180,7 +245,15 @@ final class TrafficSignPickerViewController: UIViewController,
 		}) {
 			selection.remove(at: idx)
 		} else {
-			selection.append(.catalog(entry))
+			let newItem = TrafficSignSelectionItem.catalog(entry)
+			if isMainSign(entry),
+			   !selection.isEmpty,
+			   selection.allSatisfy({ isModifierSelection($0) })
+			{
+				selection.insert(newItem, at: 0)
+			} else {
+				selection.append(newItem)
+			}
 		}
 		rebuildSelectedRow()
 		collectionView.reloadData()
@@ -211,7 +284,8 @@ final class TrafficSignPickerViewController: UIViewController,
 	{
 		let columns: CGFloat = 4
 		let inset: CGFloat = 12 * 2 + 8 * (columns - 1)
-		let width = (collectionView.bounds.width - inset) / columns
+		let available = collectionView.bounds.width - inset
+		let width = max(80, available > 0 ? available / columns : 80)
 		return CGSize(width: floor(width), height: width + 28)
 	}
 }
@@ -257,5 +331,7 @@ private final class TrafficSignPickerCell: UICollectionViewCell {
 		label.text = entry.descriptiveName
 		contentView.backgroundColor = selected ? UIColor.systemBlue.withAlphaComponent(0.15) : .secondarySystemBackground
 		contentView.layer.borderColor = selected ? UIColor.systemBlue.cgColor : UIColor.separator.cgColor
+		accessibilityLabel = entry.descriptiveName
+		accessibilityTraits = selected ? [.button, .selected] : .button
 	}
 }
