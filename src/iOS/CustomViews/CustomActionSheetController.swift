@@ -134,6 +134,8 @@ class CustomActionSheetController: UIViewController {
 		])
 		alertStack.addArrangedSubview(contentView)
 
+		var slideToSelectItems: [SlideToSelectOverlay.Item] = []
+
 		// Add main actions
 		actions.filter { !$0.isCancel }.forEach { action in
 			let button = ButtonClosure(type: .system)
@@ -196,10 +198,10 @@ class CustomActionSheetController: UIViewController {
 			button.layer.cornerRadius = cornerRadius
 			button.clipsToBounds = true
 
-			button.onTap = { [weak self] _ in
+			slideToSelectItems.append(SlideToSelectOverlay.Item(view: button) { [weak self] in
 				self?.dismiss(animated: true)
 				action.handler?()
-			}
+			})
 
 			buttonsStack.addArrangedSubview(button)
 
@@ -236,10 +238,10 @@ class CustomActionSheetController: UIViewController {
 			cancelButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .callout).bold()
 #endif
 
-			cancelButton.onTap = { [weak self] _ in
+			slideToSelectItems.append(SlideToSelectOverlay.Item(view: cancelButton) { [weak self] in
 				self?.dismiss(animated: true)
 				cancel.handler?()
-			}
+			})
 
 			alertStack.addArrangedSubview(cancelButton)
 
@@ -249,6 +251,16 @@ class CustomActionSheetController: UIViewController {
 				cancelButton.heightAnchor.constraint(equalToConstant: buttonHeight)
 			])
 		}
+
+		let slideToSelectOverlay = SlideToSelectOverlay(items: slideToSelectItems)
+		slideToSelectOverlay.translatesAutoresizingMaskIntoConstraints = false
+		view.addSubview(slideToSelectOverlay)
+		NSLayoutConstraint.activate([
+			slideToSelectOverlay.topAnchor.constraint(equalTo: alertStack.topAnchor),
+			slideToSelectOverlay.bottomAnchor.constraint(equalTo: alertStack.bottomAnchor),
+			slideToSelectOverlay.leadingAnchor.constraint(equalTo: alertStack.leadingAnchor),
+			slideToSelectOverlay.trailingAnchor.constraint(equalTo: alertStack.trailingAnchor)
+		])
 	}
 
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
@@ -259,5 +271,93 @@ class CustomActionSheetController: UIViewController {
 			return
 		}
 		super.pressesBegan(presses, with: event)
+	}
+}
+
+// Tracks a single touch across menu rows and activates the item under the finger on release,
+// matching system action sheet and context menu behavior on iOS and macOS.
+private final class SlideToSelectOverlay: UIView {
+	struct Item {
+		let view: UIView
+		let handler: () -> Void
+	}
+
+	private let items: [Item]
+	private var highlightedView: UIView?
+	private var savedBackgroundColors: [ObjectIdentifier: UIColor] = [:]
+
+	init(items: [Item]) {
+		self.items = items
+		super.init(frame: .zero)
+		backgroundColor = .clear
+		for item in items {
+			item.view.isUserInteractionEnabled = false
+		}
+	}
+
+	@available(*, unavailable)
+	required init?(coder: NSCoder) {
+		fatalError("init(coder:) has not been implemented")
+	}
+
+	private func item(at point: CGPoint) -> Item? {
+		for item in items {
+			let localPoint = convert(point, to: item.view)
+			if item.view.point(inside: localPoint, with: nil) {
+				return item
+			}
+		}
+		return nil
+	}
+
+	private func setHighlightedView(_ view: UIView?) {
+		guard highlightedView !== view else {
+			return
+		}
+
+		if let oldView = highlightedView {
+			let key = ObjectIdentifier(oldView)
+			oldView.backgroundColor = savedBackgroundColors.removeValue(forKey: key)
+		}
+
+		highlightedView = view
+
+		if let newView = view {
+			let key = ObjectIdentifier(newView)
+			if savedBackgroundColors[key] == nil {
+				savedBackgroundColors[key] = newView.backgroundColor ?? .clear
+			}
+			newView.backgroundColor = .tertiarySystemFill
+		}
+	}
+
+	private func clearHighlight() {
+		setHighlightedView(nil)
+	}
+
+	override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+		guard let touch = touches.first else {
+			return
+		}
+		setHighlightedView(item(at: touch.location(in: self))?.view)
+	}
+
+	override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+		guard let touch = touches.first else {
+			return
+		}
+		setHighlightedView(item(at: touch.location(in: self))?.view)
+	}
+
+	override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+		guard let touch = touches.first else {
+			return
+		}
+		item(at: touch.location(in: self))?.handler()
+		clearHighlight()
+	}
+
+	override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+		clearHighlight()
 	}
 }
