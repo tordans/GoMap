@@ -21,9 +21,10 @@ final class TrafficSignOverlayLayer: CALayer {
 	}
 
 	override init(layer: Any) {
-		let other = layer as! TrafficSignOverlayLayer
-		viewPort = other.viewPort
-		mapData = other.mapData
+		if let other = layer as? TrafficSignOverlayLayer {
+			viewPort = other.viewPort
+			mapData = other.mapData
+		}
 		super.init(layer: layer)
 	}
 
@@ -63,7 +64,9 @@ final class TrafficSignOverlayLayer: CALayer {
 		let pt = MapTransform.mapPoint(forLatLon: node.latLon)
 		let screen = viewPort.mapTransform.screenPoint(forMapPoint: pt, birdsEye: true)
 
-		if let value = tags["traffic_sign"], !value.isEmpty {
+		let hasForward = !(tags["traffic_sign:forward"]?.isEmpty ?? true)
+		let hasBackward = !(tags["traffic_sign:backward"]?.isEmpty ?? true)
+		if !hasForward, !hasBackward, let value = tags["traffic_sign"], !value.isEmpty {
 			addBeadChain(components: catalog.displayComponents(forTagValue: value, countryCode: country),
 			             at: screen,
 			             angle: 0,
@@ -153,14 +156,16 @@ final class TrafficSignOverlayLayer: CALayer {
 			layer.bounds = CGRect(x: 0, y: 0, width: iconSize, height: iconSize)
 			layer.position = CGPoint(x: x + iconSize / 2, y: center.y)
 			layer.cornerRadius = 2
-			layer.backgroundColor = UIColor.white.withAlphaComponent(0.85).cgColor
-			layer.borderColor = UIColor.darkGray.cgColor
 			layer.borderWidth = 0.5
 
 			switch component {
 			case let .image(assetName, _):
+				layer.backgroundColor = UIColor.white.withAlphaComponent(0.85).cgColor
+				layer.borderColor = UIColor.darkGray.cgColor
 				layer.contents = UIImage(named: assetName)?.cgImage
 			case let .other(label):
+				layer.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.85).cgColor
+				layer.borderColor = UIColor.separator.cgColor
 				layer.contents = placeholderImage(label: label).cgImage
 			}
 

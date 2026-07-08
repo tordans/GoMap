@@ -178,18 +178,18 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 
 	private func updateAssociatedContent() {
 		// Swift doesn't like too many ??'s so we break it into pieces 🤷‍♂️
+		let trafficSignButton = TrafficSignTagKey.isPickerKey(key) ? getTrafficSignButton() : nil
 		let associatedView1 = getSurveyDateButton()
 			?? getAssociatedColor()
 			?? getOpeningHoursButton()
 			?? getWebsiteButton()
 			?? getDirectionButton()
-		let associatedView2 = getTrafficSignButton()
-			?? getHeightButton()
+		let associatedView2 = getHeightButton()
 			?? getYesNoButton(keyValueDict: owner?.keyValueDict ?? [:])
 			?? getUnitsButton()
 			?? getPhotographButton()
 
-		rightView = associatedView1 ?? associatedView2
+		rightView = trafficSignButton ?? associatedView1 ?? associatedView2
 		rightViewMode = rightView != nil ? .always : .never
 		if #available(iOS 13.0, *) {
 			// great
@@ -314,6 +314,7 @@ class PresetValueTextField: AutocompleteTextField, PanoramaxDelegate {
 		let country = AppDelegate.shared.mainView.currentRegion.country.uppercased()
 		guard TrafficSignCatalog.shared.hasCatalog(forCountryCode: country) else { return nil }
 		let button = UIButton(type: .contactAdd)
+		button.accessibilityLabel = NSLocalizedString("Choose traffic signs", comment: "Open traffic sign picker")
 		button.addTarget(self, action: #selector(openTrafficSignPicker(_:)), for: .touchUpInside)
 		return button
 	}

@@ -29,8 +29,10 @@ enum TrafficSignComposer {
 			}
 
 			let kind: String = {
-				if case let .catalog(entry) = item { return entry.kind }
-				return "traffic_sign"
+				switch item {
+				case let .catalog(entry): return entry.kind
+				case let .other(_, _, kind): return kind
+				}
 			}()
 
 			let isFirst = index == 0
@@ -53,11 +55,13 @@ enum TrafficSignComposer {
 		let redirects = catalog.redirects(for: countryCode)
 		let lowerRedirects = Dictionary(uniqueKeysWithValues: redirects.map { ($0.key.lowercased(), $0.value) })
 
-		let valueParts = splitIntoSignValueParts(cleaned).map { part -> String in
-			lowerRedirects[part.lowercased()] ?? part
+		let valueParts = splitIntoSignValueParts(cleaned).map { item -> (part: String, precededByComma: Bool) in
+			let redirected = lowerRedirects[item.part.lowercased()] ?? item.part
+			return (redirected, item.precededByComma)
 		}
 
-		return valueParts.map { part in
+		return valueParts.map { item in
+			let part = item.part
 			if let entry = catalog.entry(forOsmValuePart: part, countryCode: cc) {
 				return .catalog(entry)
 			}
@@ -65,18 +69,22 @@ enum TrafficSignComposer {
 			if let entry = catalog.entryMatching(signId: signId, signValue: signValue, countryCode: cc) {
 				return .catalog(entry)
 			}
-			let display = part.hasPrefix("\""), part.hasSuffix("\"") ? String(part.dropFirst().dropLast()) : part
-			return .other(osmValuePart: part, displayLabel: display)
+			let display = part.hasPrefix("\"") && part.hasSuffix("\"")
+				? String(part.dropFirst().dropLast())
+				: part
+			let kind = item.precededByComma ? "exception_modifier" : "traffic_sign"
+			return .other(osmValuePart: part, displayLabel: display, kind: kind)
 		}
 	}
 
 	// MARK: - Parsing helpers (ported from @osm-traffic-signs/converter)
 
-	private static func splitIntoSignValueParts(_ input: String) -> [String] {
-		var result: [String] = []
+	private static func splitIntoSignValueParts(_ input: String) -> [(part: String, precededByComma: Bool)] {
+		var result: [(part: String, precededByComma: Bool)] = []
 		var current = ""
 		var bracketDepth = 0
 		var inQuotes = false
+		var nextPrecededByComma = false
 		for char in input {
 			if char == "\"" {
 				inQuotes.toggle()
@@ -89,14 +97,17 @@ enum TrafficSignComposer {
 				current.append(char)
 			} else if !inQuotes, bracketDepth == 0, char == "," || char == ";" {
 				let trimmed = current.trimmingCharacters(in: .whitespaces)
-				if !trimmed.isEmpty { result.append(trimmed) }
+				if !trimmed.isEmpty {
+					result.append((trimmed, nextPrecededByComma))
+				}
 				current = ""
+				nextPrecededByComma = char == ","
 			} else {
 				current.append(char)
 			}
 		}
 		let trimmed = current.trimmingCharacters(in: .whitespaces)
-		if !trimmed.isEmpty { result.append(trimmed) }
+		if !trimmed.isEmpty { result.append((trimmed, nextPrecededByComma)) }
 		return result
 	}
 

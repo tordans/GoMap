@@ -166,8 +166,10 @@ function catalogEntriesForCountry(countryCode) {
   const entries = signs.map((sign) => ({
     osmValuePart: sign.osmValuePart,
     signId: sign.signId,
-    name: sign.name,
-    descriptiveName: sign.descriptiveName,
+    name: sign.name ?? sign.signId,
+    // Some signs (e.g. unofficial ones) have no descriptiveName; fall back so
+    // every entry decodes with a usable display string.
+    descriptiveName: sign.descriptiveName ?? sign.name ?? sign.signId,
     kind: sign.kind,
     imageName: createSvgFilename(countryCode, sign.osmValuePart),
     isNamedValue: false,

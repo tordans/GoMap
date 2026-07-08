@@ -18,11 +18,24 @@ struct TrafficSignEntry: Codable, Equatable {
 	let osmValuePart: String
 	let signId: String
 	let name: String
-	let descriptiveName: String
+	// Some catalog entries (e.g. unofficial signs) lack a descriptiveName in the JSON.
+	private let rawDescriptiveName: String?
 	let kind: String
 	let imageName: String
 	let isNamedValue: Bool?
 	let searchTokens: [String]
+
+	private enum CodingKeys: String, CodingKey {
+		case osmValuePart, signId, name, kind, imageName, isNamedValue, searchTokens
+		case rawDescriptiveName = "descriptiveName"
+	}
+
+	var descriptiveName: String {
+		if let rawDescriptiveName, !rawDescriptiveName.isEmpty {
+			return rawDescriptiveName
+		}
+		return name.isEmpty ? signId : name
+	}
 
 	var assetName: String {
 		imageName.replacingOccurrences(of: ".svg", with: "")
@@ -49,12 +62,12 @@ private struct TrafficSignIndexFile: Codable {
 /// A catalog sign or unrecognized free-text fragment preserved from an existing tag value.
 enum TrafficSignSelectionItem: Equatable {
 	case catalog(TrafficSignEntry)
-	case other(osmValuePart: String, displayLabel: String)
+	case other(osmValuePart: String, displayLabel: String, kind: String)
 
 	var osmValuePart: String {
 		switch self {
 		case let .catalog(entry): return entry.osmValuePart
-		case let .other(part, _): return part
+		case let .other(part, _, _): return part
 		}
 	}
 
@@ -72,9 +85,20 @@ final class TrafficSignCatalog {
 	private let allEntriesByCountry: [String: [TrafficSignEntry]]
 
 	private init() {
-		let url = Bundle.main.url(forResource: "TrafficSignIndex", withExtension: "json")!
-		let data = try! Data(contentsOf: url)
-		index = try! JSONDecoder().decode(TrafficSignIndexFile.self, from: data)
+		var loadedIndex = TrafficSignIndexFile(
+			version: 0,
+			countries: [],
+			namedTrafficSignValues: [],
+			catalogs: [:])
+		if let url = Bundle.main.url(forResource: "TrafficSignIndex", withExtension: "json"),
+		   let data = try? Data(contentsOf: url),
+		   let decoded = try? JSONDecoder().decode(TrafficSignIndexFile.self, from: data)
+		{
+			loadedIndex = decoded
+		} else {
+			DLog("TrafficSignCatalog: failed to load TrafficSignIndex.json")
+		}
+		index = loadedIndex
 
 		var byPart: [String: [String: TrafficSignEntry]] = [:]
 		var allByCountry: [String: [TrafficSignEntry]] = [:]
@@ -121,13 +145,13 @@ final class TrafficSignCatalog {
 	func entryMatching(signId: String, signValue: String?, countryCode: String) -> TrafficSignEntry? {
 		let entries = allEntriesByCountry[countryCode.uppercased()] ?? []
 		let matches = entries.filter { $0.signId == signId }
+		if let signValue = signValue {
+			return matches.first(where: { $0.osmValuePart.contains("[\(signValue)]") })
+		}
 		if matches.count == 1 {
 			return matches[0]
 		}
 		if matches.count > 1 {
-			if let signValue = signValue {
-				return matches.first(where: { $0.osmValuePart.contains("[\(signValue)]") })
-			}
 			return matches.first(where: { !$0.osmValuePart.contains("[") })
 		}
 		return nil
@@ -166,7 +190,7 @@ final class TrafficSignCatalog {
 			switch item {
 			case let .catalog(entry):
 				return .image(assetName: entry.assetName, label: entry.descriptiveName)
-			case let .other(part, label):
+			case let .other(part, label, _):
 				return .other(label: label.isEmpty ? part : label)
 			}
 		}
