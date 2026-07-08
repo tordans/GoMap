@@ -632,6 +632,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	}
 
 	func unselectAll() {
+		if isRotateObjectMode != nil {
+			endObjectRotation()
+		}
 		editorLayer.selectedNode = nil
 		editorLayer.selectedWay = nil
 		editorLayer.selectedRelation = nil
@@ -1052,8 +1055,7 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 		} else if rotationGesture.state == .changed {
 			editorLayer.rotateContinue(delta: rotationGesture.rotation, rotate: rotate)
 		} else {
-			// ended
-			endObjectRotation()
+			// ended — keep rotate mode active until user taps the map
 			editorLayer.rotateFinish()
 		}
 	}
