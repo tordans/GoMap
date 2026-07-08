@@ -632,6 +632,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	// MARK: PushPin
 
 	func selectObject(_ object: OsmBaseObject?, pinAt point: CGPoint? = nil) {
+		if isRotateObjectMode != nil {
+			endObjectRotation()
+		}
 		editorLayer.selectedNode = object as? OsmNode
 		editorLayer.selectedWay = object as? OsmWay
 		editorLayer.selectedRelation = object as? OsmRelation

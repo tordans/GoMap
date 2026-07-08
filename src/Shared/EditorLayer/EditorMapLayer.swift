@@ -179,6 +179,7 @@ final class EditorMapLayer: CALayer {
 	var dragState = DragState(startPoint: .zero, didMove: false, confirmDrag: false)
 
 	/// Active while rotating a node's `direction` / `camera:direction` tag (not geometry).
+	var directionRotateNode: OsmNode?
 	var directionRotateTagKey: String?
 	var directionRotateInitialBearing: Int?
 	var directionRotateUndoOpen = false
@@ -1219,7 +1220,7 @@ final class EditorMapLayer: CALayer {
 			return [directionShapeLayer(for: node, withDirection: direction)]
 		}
 
-		if node === selectedNode,
+		if node === selectedNode || node === directionRotateNode,
 		   directionRotateTagKey != nil,
 		   let bearing = directionRotateInitialBearing
 		{

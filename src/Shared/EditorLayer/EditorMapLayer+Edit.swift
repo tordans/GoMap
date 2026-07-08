@@ -464,6 +464,7 @@ extension EditorMapLayer {
 		guard let node = selectedNode,
 		      let tagKey = node.rotatableDirectionTagKey
 		else { return }
+		directionRotateNode = node
 		directionRotateTagKey = tagKey
 		directionRotateInitialBearing = node.direction?.location ?? 0
 		setNeedsLayout()
@@ -476,7 +477,7 @@ extension EditorMapLayer {
 	}
 
 	func rotateDirectionContinue(delta: CGFloat) {
-		guard let node = selectedNode,
+		guard let node = directionRotateNode,
 		      let tagKey = directionRotateTagKey,
 		      let initialBearing = directionRotateInitialBearing
 		else { return }
@@ -507,6 +508,7 @@ extension EditorMapLayer {
 		if dragState.didMove {
 			owner.didUpdateObject()
 		}
+		directionRotateNode = nil
 		directionRotateTagKey = nil
 		directionRotateInitialBearing = nil
 	}
