@@ -632,6 +632,9 @@ final class MapView: UIView, UIGestureRecognizerDelegate, UIContextMenuInteracti
 	}
 
 	func unselectAll() {
+		if isRotateObjectMode != nil {
+			endObjectRotation()
+		}
 		editorLayer.selectedNode = nil
 		editorLayer.selectedWay = nil
 		editorLayer.selectedRelation = nil
