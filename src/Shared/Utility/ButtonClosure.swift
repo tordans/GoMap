@@ -24,4 +24,12 @@ class ButtonClosure: UIButton {
 	@objc private func trigger() {
 		onTap?(self)
 	}
+
+	override func accessibilityActivate() -> Bool {
+		if onTap != nil {
+			onTap?(self)
+			return true
+		}
+		return super.accessibilityActivate()
+	}
 }
