@@ -1,15 +1,16 @@
-# AGENTS.md
+# CLOUD.md — Cursor Cloud specific instructions
 
-## Cursor Cloud specific instructions
+This file is read **only by Cursor Cloud/Background Agents** (the local IDE chat ignores
+`.cursor/CLOUD.md`), so it holds cloud-only setup and workflow guidance for this repo.
 
 ### Cloud Agent harness rules (local, not committed)
 
-The environment setup (the `install`/update script) generates an **untracked** always-apply
-rule at `.cursor/rules/gomap-cloud-harness.mdc` on VM startup. It holds fork-specific
-PR/upstream guidance for this repository and is intentionally kept out of git (registered in
-`.git/info/exclude`, so it never appears in `git status` or commits). Because it is a
-`.cursor/rules/*.mdc` rule with `alwaysApply: true`, Cursor auto-loads it into the agent
-context, so its rules are applied automatically when you start work or open a PR. Do not
+The environment setup (the `install`/update script) generates an **untracked** cloud-only
+always-apply rule at `.cursor/rules/gomap-cloud-harness.mdc` on VM startup. It holds
+fork-specific PR/upstream guidance and is intentionally kept out of git (registered in
+`.git/info/exclude`, so it never appears in `git status` or commits). Its frontmatter uses
+`alwaysApply: true` with `metadata.environments: cloud`, so Cursor auto-loads it into cloud
+agent context — its rules apply automatically when you start work or open a PR. Do not
 commit it or add it to tracked git ignore files.
 
 ### Platform requirement: this is a macOS/Xcode-only iOS app
