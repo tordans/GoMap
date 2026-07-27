@@ -2,6 +2,15 @@
 
 ## Cursor Cloud specific instructions
 
+### Cloud Agent harness rules (local, not committed)
+
+The environment setup (update script) generates an **untracked** `AGENTS.harness.md` at the
+repo root on VM startup. It holds fork-specific PR/upstream guidance for this repository and
+is intentionally kept out of git (registered in `.git/info/exclude`, so it never appears in
+`git status` or commits). **Before starting work or opening a PR, read `AGENTS.harness.md`
+if it is present** and follow its rules. Do not commit it or add it to tracked git ignore
+files.
+
 ### Platform requirement: this is a macOS/Xcode-only iOS app
 
 Go Map!! is a native **iOS/iPadOS** application (Swift 5 + Objective-C, UIKit). Building,
