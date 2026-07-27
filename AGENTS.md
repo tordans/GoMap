@@ -1,15 +1,16 @@
-# CLOUD.md
+# AGENTS.md
 
 ## Cursor Cloud specific instructions
 
 ### Cloud Agent harness rules (local, not committed)
 
-The environment setup (update script) generates an **untracked** `CLOUD.harness.md` at the
-repo root on VM startup. It holds fork-specific PR/upstream guidance for this repository and
-is intentionally kept out of git (registered in `.git/info/exclude`, so it never appears in
-`git status` or commits). **Before starting work or opening a PR, read `CLOUD.harness.md`
-if it is present** and follow its rules. Do not commit it or add it to tracked git ignore
-files.
+The environment setup (the `install`/update script) generates an **untracked** always-apply
+rule at `.cursor/rules/gomap-cloud-harness.mdc` on VM startup. It holds fork-specific
+PR/upstream guidance for this repository and is intentionally kept out of git (registered in
+`.git/info/exclude`, so it never appears in `git status` or commits). Because it is a
+`.cursor/rules/*.mdc` rule with `alwaysApply: true`, Cursor auto-loads it into the agent
+context, so its rules are applied automatically when you start work or open a PR. Do not
+commit it or add it to tracked git ignore files.
 
 ### Platform requirement: this is a macOS/Xcode-only iOS app
 
